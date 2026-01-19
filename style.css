@@ -319,3 +319,34 @@ body{
 }
 
 
+
+
+/* ==========================================
+   ANIMAZIONE ZOOM-IN / ZOOM-OUT
+========================================== */
+
+.micro-zoom-clone {
+  position: fixed;
+  z-index: 9998;
+  pointer-events: none;
+  transform-origin: top left;
+  transition: transform 0.35s cubic-bezier(0.16, 0.8, 0.32, 1);
+}
+
+.micro-zoom-out {
+  transition: transform 0.35s cubic-bezier(0.3, 0.0, 0.2, 1);
+}
+
+.fade-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0);
+  transition: background 0.35s ease;
+  z-index: 9997;
+  pointer-events: none;
+}
+
+.fade-overlay.active {
+  background: rgba(0,0,0,0.85);
+}
+
