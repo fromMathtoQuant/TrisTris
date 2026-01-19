@@ -7,7 +7,7 @@ import { isMicroPlayable, isMicroWon } from "../app/gameRules.js";
 export function renderStatus(state) {
   const status = document.getElementById("status-bar");
   
-  if (state.ui.screen === "menu") {
+  if (state.ui.screen === "menu" || state.ui.screen === "difficulty") {
     status.textContent = "Benvenuto in TrisTris!";
     return;
   }
@@ -18,7 +18,17 @@ export function renderStatus(state) {
     const idx = state.ui.viewingMicro;
     const r = Math.floor(idx / 3);
     const c = idx % 3;
-    status.textContent = `Stai giocando nella micro (${r+1}, ${c+1})`;
+    
+    if (state.gameMode === "ai" && state.turn === 1) {
+      status.textContent = `AI sta pensando nella micro (${r+1}, ${c+1})...`;
+    } else {
+      status.textContent = `Stai giocando nella micro (${r+1}, ${c+1})`;
+    }
+    return;
+  }
+
+  if (state.gameMode === "ai" && state.turn === 1) {
+    status.textContent = "Turno dell'AI...";
     return;
   }
 
@@ -42,6 +52,11 @@ export function renderBoard(state) {
     return;
   }
 
+  if (state.ui.screen === "difficulty") {
+    renderDifficultyModal(root);
+    return;
+  }
+
   if (state.ui.viewingMicro !== null) {
     renderMicroFullscreen(state, state.ui.viewingMicro, root);
   } else {
@@ -56,27 +71,84 @@ function renderMenu(root) {
   root.innerHTML = "";
   root.className = "board-placeholder menu-screen";
 
-  const container = document.createElement("div");
-  container.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:2rem;padding:3rem";
-
   const title = document.createElement("h2");
+  title.className = "menu-title";
   title.textContent = "TrisTris";
-  title.style.cssText = "font-size:3rem;margin:0;background:linear-gradient(90deg,var(--accent),var(--accent-2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text";
 
   const description = document.createElement("p");
+  description.className = "menu-description";
   description.textContent = "Il gioco del tris elevato al quadrato!";
-  description.style.cssText = "text-align:center;font-size:1.1rem;opacity:0.8;max-width:400px";
 
-  const startBtn = document.createElement("button");
-  startBtn.textContent = "Inizia Partita";
-  startBtn.className = "install-btn";
-  startBtn.dataset.action = "start-game";
-  startBtn.style.cssText = "padding:1rem 2rem;font-size:1.1rem;cursor:pointer";
+  const buttonsContainer = document.createElement("div");
+  buttonsContainer.className = "menu-buttons";
 
-  container.appendChild(title);
-  container.appendChild(description);
-  container.appendChild(startBtn);
-  root.appendChild(container);
+  const pvpBtn = document.createElement("button");
+  pvpBtn.textContent = "2 Giocatori";
+  pvpBtn.className = "menu-btn";
+  pvpBtn.dataset.action = "start-pvp";
+
+  const aiBtn = document.createElement("button");
+  aiBtn.textContent = "Contro AI";
+  aiBtn.className = "menu-btn secondary";
+  aiBtn.dataset.action = "start-ai";
+
+  buttonsContainer.appendChild(pvpBtn);
+  buttonsContainer.appendChild(aiBtn);
+
+  root.appendChild(title);
+  root.appendChild(description);
+  root.appendChild(buttonsContainer);
+}
+
+/* ------------------------------
+   DIFFICULTY MODAL
+-------------------------------- */
+function renderDifficultyModal(root) {
+  root.innerHTML = "";
+  root.className = "board-placeholder";
+
+  const modal = document.createElement("div");
+  modal.className = "difficulty-modal";
+
+  const content = document.createElement("div");
+  content.className = "difficulty-content";
+
+  const title = document.createElement("h2");
+  title.className = "difficulty-title";
+  title.textContent = "Scegli la difficoltà";
+
+  const buttonsContainer = document.createElement("div");
+  buttonsContainer.className = "difficulty-buttons";
+
+  const easyBtn = document.createElement("button");
+  easyBtn.className = "difficulty-btn easy";
+  easyBtn.textContent = "Facile";
+  easyBtn.dataset.difficulty = "easy";
+
+  const mediumBtn = document.createElement("button");
+  mediumBtn.className = "difficulty-btn medium";
+  mediumBtn.textContent = "Medio";
+  mediumBtn.dataset.difficulty = "medium";
+
+  const hardBtn = document.createElement("button");
+  hardBtn.className = "difficulty-btn hard";
+  hardBtn.textContent = "Difficile";
+  hardBtn.dataset.difficulty = "hard";
+
+  const cancelBtn = document.createElement("button");
+  cancelBtn.className = "difficulty-btn difficulty-cancel";
+  cancelBtn.textContent = "Annulla";
+  cancelBtn.dataset.action = "cancel-difficulty";
+
+  buttonsContainer.appendChild(easyBtn);
+  buttonsContainer.appendChild(mediumBtn);
+  buttonsContainer.appendChild(hardBtn);
+  buttonsContainer.appendChild(cancelBtn);
+
+  content.appendChild(title);
+  content.appendChild(buttonsContainer);
+  modal.appendChild(content);
+  root.appendChild(modal);
 }
 
 /* ------------------------------
@@ -86,7 +158,6 @@ function renderMacro(state, root) {
   root.innerHTML = "";
   root.className = "board-placeholder";
 
-  // Bottone torna al menu
   const backBtn = document.createElement("button");
   backBtn.textContent = "← Torna al Menu";
   backBtn.className = "install-btn";
@@ -114,14 +185,12 @@ function renderMacro(state, root) {
     const c = idx % 3;
 
     if (isMicroWon(state, idx)) {
-      // mostra overlay vinta
       const winner = state.macroBoard[r][c];
       const overlay = document.createElement("div");
       overlay.className = `micro-winner-overlay ${winner}`;
       overlay.textContent = winner;
       macroCell.appendChild(overlay);
     } else {
-      // micro non vinta → preview ridotta o griglia ghost
       macroCell.appendChild(renderMicroPreview(state, idx));
     }
 
@@ -136,25 +205,22 @@ function renderMacro(state, root) {
 -------------------------------- */
 function renderMicroFullscreen(state, microIndex, root) {
   root.innerHTML = "";
-  root.className = "";
+  root.className = "board-placeholder";
 
   const overlay = document.createElement("div");
   overlay.className = "micro-fullscreen-overlay";
 
-  /* HEADER */
   const header = document.createElement("div");
   header.className = "micro-fullscreen-header";
 
   const closeBtn = document.createElement("button");
-  closeBtn.type = "button"; 
   closeBtn.className = "micro-close-btn";
   closeBtn.textContent = "✕";
-  closeBtn.dataset.closeMicro = "true";
+  closeBtn.dataset.action = "close-micro";
 
   header.appendChild(closeBtn);
   overlay.appendChild(header);
 
-  /* BODY */
   const body = document.createElement("div");
   body.className = "micro-fullscreen-body";
 
