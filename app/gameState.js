@@ -11,7 +11,7 @@ export function initGameState() {
     // 9 microgriglie 3x3
     microBoards: createNestedBoards(3, 3),
     // Microgriglia obbligata per la prossima mossa (null = libera)
-    nextForcedCell: null
+    nextForcedCell: null,
     ui: {
       viewingMicro: null
     }
