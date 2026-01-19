@@ -26,4 +26,3 @@ function createNestedBoards(macro, micro) {
   }
   return boards;
 }
-``
