@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="it">
+<head> 
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="TrisTris" />
+  <title>TrisTris</title>
+
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#0f172a" />
+
+  <link rel="stylesheet" href="styles/styles.css" />
+</head>
+<body>
+
+  <header class="app-header">
+    <h1>TrisTris</h1>
+    <button id="install-btn" hidden>Installa</button>
+  </header>
+
+  <main id="app" class="app-shell">
+    <div id="board-root" class="board-placeholder">
+      <p>Caricamento TrisTris…</p>
+    </div>
+  </main>
+
+  <footer class="app-footer">
+    <small>© <span id="year"></span> TrisTris</small>
+  </footer>
+
+  <script type="module" src="scripts/app.js"></script>
+</body>
+</html>
