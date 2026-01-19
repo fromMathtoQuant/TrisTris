@@ -8,11 +8,17 @@ export function initGameState() {
     macroBoard: createEmptyMatrix(3),
     microBoards: createNestedBoards(3, 3),
     nextForcedCell: null,
-    gameMode: null, // "pvp" | "ai"
+    gameMode: null, // "pvp" | "ai" | "online"
     aiDifficulty: null, // "easy" | "medium" | "hard"
+    // Online properties
+    onlineGameCode: null,
+    onlinePlayerId: null,
+    onlinePlayer1Id: null,
+    onlineWaiting: false,
+    onlinePollingId: null,
     ui: {
       viewingMicro: null,
-      screen: "menu" // "menu" | "difficulty" | "game"
+      screen: "menu" // "menu" | "difficulty" | "online" | "game"
     }
   };
 }
