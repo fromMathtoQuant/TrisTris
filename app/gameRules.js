@@ -85,3 +85,26 @@ export function checkWin(board) {
 
   return null;
 }
+
+
+/**
+ * Controlla se la partita è finita
+ * Restituisce: { finished: boolean, winner: "X" | "O" | "draw" | null }
+ */
+export function checkGameEnd(state) {
+  // Controlla vittoria sulla macroBoard
+  const winner = checkWin(state.macroBoard);
+  if (winner) {
+    return { finished: true, winner };
+  }
+
+  // Controlla se ci sono ancora mosse possibili
+  const hasPlayableMicro = state.microBoards.some((_, idx) => isMicroPlayable(state, idx));
+  
+  if (!hasPlayableMicro) {
+    return { finished: true, winner: "draw" };
+  }
+
+  return { finished: false, winner: null };
+}
+
