@@ -29,22 +29,52 @@ const state = initGameState();
 renderStatus(state);
 renderBoard(state);
 
-// Click su una micro-cella: prova a giocare la mossa e rerender
+
+// CLICK HANDLER
 document.addEventListener("click", (e) => {
   const el = e.target;
   if (!(el instanceof HTMLElement)) return;
-  if (!el.classList.contains("micro-cell")) return;
 
-  const micro = Number(el.dataset.micro);
-  const row = Number(el.dataset.row);
-  const col = Number(el.dataset.col);
-
-  const moved = playMove(state, micro, row, col);
-  if (moved) {
+  /* ---- CHIUSURA FULLSCREEN ---- */
+  if (el.dataset.closeMicro === "true") {
+    state.ui.viewingMicro = null;
     renderStatus(state);
     renderBoard(state);
+    return;
+  }
+
+  /* ---- PRIMO CLICK: macro → apri micro ---- */
+  if (el.closest(".macro-cell") && state.ui.viewingMicro === null) {
+    const idx = Number(el.closest(".macro-cell").dataset.micro);
+
+    // deve essere giocabile
+    if (isMicroPlayable(state, idx)) {
+      state.ui.viewingMicro = idx;
+      renderStatus(state);
+      renderBoard(state);
+    }
+    return;
+  }
+
+  /* ---- SECONDO CLICK: micro fullscreen → mossa ---- */
+  if (el.classList.contains("micro-cell") && state.ui.viewingMicro !== null) {
+    const micro = Number(el.dataset.micro);
+    const row   = Number(el.dataset.row);
+    const col   = Number(el.dataset.col);
+
+    const moved = playMove(state, micro, row, col);
+
+    if (moved) {
+      // chiudi modal e torna alla macro
+      state.ui.viewingMicro = null;
+      renderStatus(state);
+      renderBoard(state);
+    }
+
+    return;
   }
 });
+
 
 // Service Worker
 if ("serviceWorker" in navigator) {
