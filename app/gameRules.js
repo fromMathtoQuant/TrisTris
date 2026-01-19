@@ -60,10 +60,10 @@ export function isValidMove(state, microIndex, row, col) {
 }
 
 /**
- * Controlla se una micro ha un tris vincente.
+ * Controlla se una board (micro o macro) ha un tris vincente.
  * Restituisce "X", "O" o null.
  */
-export function checkMicroWin(board) {
+export function checkWin(board) {
   const size = 3;
   const lines = [];
 
@@ -83,10 +83,5 @@ export function checkMicroWin(board) {
     }
   }
 
-  return null;
-}
-
-/** Placeholder macro */
-export function checkMacroWin(macroBoard) {
   return null;
 }
