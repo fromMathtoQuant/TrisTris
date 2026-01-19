@@ -2,6 +2,7 @@
 // scripts/app.js
 import { renderBoard, renderStatus } from "./ui.js";
 import { initGameState } from "../app/gameState.js";
+import { isMicroPlayable } from "../app/gameRules.js";
 import { playMove } from "../app/engine.js";
 
 // Anno footer
