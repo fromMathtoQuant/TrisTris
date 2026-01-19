@@ -1,29 +1,36 @@
 
 // app/engine.js
-import { isValidMove, isMicroPlayable } from "./gameRules.js";
-
-/**
- * Prova a giocare una mossa.
- * @returns {boolean} true se la mossa è stata eseguita, false altrimenti.
- */
-export function playMove(state, microIndex, row, col) {
-  if (!isValidMove(state, microIndex, row, col)) {
+import {
+  isValidMove,
+ , microIndex, row, col)) {
     return false;
   }
 
   const symbol = state.players[state.turn];
   const board = state.microBoards[microIndex];
 
-  // Applica la mossa
+  // Piazza la X / O
   board[row][col] = symbol;
 
-  // TODO: in futuro -> checkMicroWin(board) e aggiornare macroBoard
+  // --- 1) Controllo vittoria micro ---
+  const winner = checkMicroWin(board);
+  if (winner) {
+    const { row: macroR, col: macroC } = getMacroCellCoords(microIndex);
+    state.macroBoard[macroR][macroC] = winner;
+  }
 
-  // Calcola la prossima micro obbligata per l'avversario
+  // --- 2) Calcolo della micro obbligata ---
   const nextCandidate = row * state.microSize + col;
-  state.nextForcedCell = isMicroPlayable(state, nextCandidate) ? nextCandidate : null;
 
-  // Alterna turno
+  // Se la micro candidata è giocabile → obbligata
+  if (isMicroPlayable(state, nextCandidate)) {
+    state.nextForcedCell = nextCandidate;
+  } else {
+    // Altrimenti → scelta libera
+    state.nextForcedCell = null;
+  }
+
+  // --- 3) Cambio turno ---
   state.turn = 1 - state.turn;
 
   return true;
