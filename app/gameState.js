@@ -5,24 +5,25 @@ export function initGameState() {
     microSize: 3,
     players: ["X", "O"],
     turn: 0, // 0: X, 1: O
-    // macroBoard può contenere null / "X" / "O" per esito micro
     macroBoard: createEmptyMatrix(3),
-    // 9 microgriglie 3x3
     microBoards: createNestedBoards(3, 3),
-    // Microgriglia obbligata per la prossima mossa (null = libera)
     nextForcedCell: null,
+    gameMode: null, // "pvp" | "ai"
+    aiDifficulty: null, // "easy" | "medium" | "hard"
     ui: {
       viewingMicro: null,
-      screen: "menu" // "menu" | "game"
+      screen: "menu" // "menu" | "difficulty" | "game"
     }
   };
 }
 
-export function resetGame(state) {
+export function resetGame(state, mode = "pvp", difficulty = null) {
   state.turn = 0;
   state.macroBoard = createEmptyMatrix(3);
   state.microBoards = createNestedBoards(3, 3);
   state.nextForcedCell = null;
+  state.gameMode = mode;
+  state.aiDifficulty = difficulty;
   state.ui.viewingMicro = null;
   state.ui.screen = "game";
 }
