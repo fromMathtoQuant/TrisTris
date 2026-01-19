@@ -1,3 +1,5 @@
+
+// app/boardModel.js
 export function getMicroBoardIndex(cellRow, cellCol, size = 3) {
   return cellRow * size + cellCol;
 }
