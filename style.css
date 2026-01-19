@@ -239,3 +239,50 @@ body{
   body{background:#f3f4f6;color:#111827}
   .app-header,.app-footer{background:#ffffff}
 }
+
+
+
+/* ================================
+   MICROGRID VINTA - OVERLAY
+================================== */
+.micro-winner-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 6rem;
+  font-weight: 900;
+  color: rgba(255,255,255,0.95);
+  text-shadow: 0 0 12px rgba(255,255,255,0.4),
+               0 0 24px rgba(255,255,255,0.5);
+  pointer-events: none;
+  z-index: 5;
+  animation: popIn 0.25s ease-out;
+}
+
+/* X rossa, O blu */
+.micro-winner-overlay.X {
+  color: #ff5757;
+  text-shadow: 0 0 12px rgba(255,87,87,0.5);
+}
+
+.micro-winner-overlay.O {
+  color: #5bd3ff;
+  text-shadow: 0 0 12px rgba(91,211,255,0.5);
+}
+
+@keyframes popIn {
+  0% { transform: scale(0.4); opacity: 0; }
+  70% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+/* Quando la micro è vinta, nascondi le celle interne */
+.micro-grid--won .micro-cell {
+  opacity: 0;
+  pointer-events: none;
+}
+
+
