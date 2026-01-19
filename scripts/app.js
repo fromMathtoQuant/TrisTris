@@ -31,7 +31,10 @@ renderStatus(state);
 renderBoard(state);
 
 
-// CLICK HANDLER
+// ==========================================
+// CLICK HANDLER PRINCIPALE
+// ==========================================
+
 document.addEventListener("click", (e) => {
   const el = e.target;
   if (!(el instanceof HTMLElement)) return;
@@ -140,6 +143,10 @@ function animateMicroZoomIn(macroCellEl, microIndex) {
 ============================= */
 function animateMicroZoomOut(targetMicroIndex, onComplete) {
   const fullscreen = document.querySelector(".fullscreen-micro");
+  if (!fullscreen) {
+    onComplete();
+    return;
+  }
 
   const rectStart = fullscreen.getBoundingClientRect();
 
