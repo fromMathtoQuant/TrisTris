@@ -1,12 +1,17 @@
+
+// app/gameState.js
 export function initGameState() {
   return {
     macroSize: 3,
     microSize: 3,
     players: ["X", "O"],
-    turn: 0,
+    turn: 0, // 0: X, 1: O
+    // macroBoard può contenere null / "X" / "O" per esito micro (in futuro)
     macroBoard: createEmptyMatrix(3),
+    // 9 microgriglie 3x3
     microBoards: createNestedBoards(3, 3),
-    nextForcedCell: null // regola del gioco: la microgriglia obbligata
+    // Microgriglia obbligata per la prossima mossa (null = libera)
+    nextForcedCell: null
   };
 }
 
@@ -17,8 +22,8 @@ function createEmptyMatrix(size) {
 function createNestedBoards(macro, micro) {
   const boards = [];
   for (let i = 0; i < macro * macro; i++) {
-    const singleBoard = createEmptyMatrix(micro);
-    boards.push(singleBoard);
+    boards.push(createEmptyMatrix(micro));
   }
   return boards;
 }
+``
