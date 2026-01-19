@@ -1,4 +1,3 @@
-
 import { getMicroBoardIndex, getMacroCellCoords } from "../app/boardModel.js";
 import { isMicroPlayable, isMicroWon } from "../app/gameRules.js";
 
@@ -7,6 +6,12 @@ import { isMicroPlayable, isMicroWon } from "../app/gameRules.js";
 -------------------------------- */
 export function renderStatus(state) {
   const status = document.getElementById("status-bar");
+  
+  if (state.ui.screen === "menu") {
+    status.textContent = "Benvenuto in TrisTris!";
+    return;
+  }
+
   const player = state.players[state.turn];
 
   if (state.ui.viewingMicro !== null) {
@@ -32,6 +37,11 @@ export function renderStatus(state) {
 export function renderBoard(state) {
   const root = document.getElementById("board-root");
 
+  if (state.ui.screen === "menu") {
+    renderMenu(root);
+    return;
+  }
+
   if (state.ui.viewingMicro !== null) {
     renderMicroFullscreen(state, state.ui.viewingMicro, root);
   } else {
@@ -40,10 +50,49 @@ export function renderBoard(state) {
 }
 
 /* ------------------------------
+   MENU INIZIALE
+-------------------------------- */
+function renderMenu(root) {
+  root.innerHTML = "";
+  root.className = "board-placeholder menu-screen";
+
+  const container = document.createElement("div");
+  container.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:2rem;padding:3rem";
+
+  const title = document.createElement("h2");
+  title.textContent = "TrisTris";
+  title.style.cssText = "font-size:3rem;margin:0;background:linear-gradient(90deg,var(--accent),var(--accent-2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text";
+
+  const description = document.createElement("p");
+  description.textContent = "Il gioco del tris elevato al quadrato!";
+  description.style.cssText = "text-align:center;font-size:1.1rem;opacity:0.8;max-width:400px";
+
+  const startBtn = document.createElement("button");
+  startBtn.textContent = "Inizia Partita";
+  startBtn.className = "install-btn";
+  startBtn.dataset.action = "start-game";
+  startBtn.style.cssText = "padding:1rem 2rem;font-size:1.1rem;cursor:pointer";
+
+  container.appendChild(title);
+  container.appendChild(description);
+  container.appendChild(startBtn);
+  root.appendChild(container);
+}
+
+/* ------------------------------
    MACROGRID
 -------------------------------- */
 function renderMacro(state, root) {
   root.innerHTML = "";
+  root.className = "board-placeholder";
+
+  // Bottone torna al menu
+  const backBtn = document.createElement("button");
+  backBtn.textContent = "← Torna al Menu";
+  backBtn.className = "install-btn";
+  backBtn.dataset.action = "back-to-menu";
+  backBtn.style.cssText = "margin-bottom:1rem;align-self:flex-start";
+  root.appendChild(backBtn);
 
   const macro = document.createElement("div");
   macro.className = "macro-grid";
@@ -87,6 +136,7 @@ function renderMacro(state, root) {
 -------------------------------- */
 function renderMicroFullscreen(state, microIndex, root) {
   root.innerHTML = "";
+  root.className = "board-placeholder";
 
   const overlay = document.createElement("div");
   overlay.className = "micro-fullscreen-overlay";
