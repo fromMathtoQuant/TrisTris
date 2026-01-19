@@ -136,7 +136,7 @@ function renderMacro(state, root) {
 -------------------------------- */
 function renderMicroFullscreen(state, microIndex, root) {
   root.innerHTML = "";
-  root.className = "board-placeholder";
+  root.className = "";
 
   const overlay = document.createElement("div");
   overlay.className = "micro-fullscreen-overlay";
