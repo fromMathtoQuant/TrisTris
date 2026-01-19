@@ -1,5 +1,4 @@
 
-// scripts/ui.js
 import { getMicroBoardIndex, getMacroCellCoords } from "../app/boardModel.js";
 import { isMicroPlayable, isMicroWon } from "../app/gameRules.js";
 
