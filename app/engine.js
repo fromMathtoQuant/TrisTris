@@ -1,10 +1,12 @@
-
-// app/engine.js
-import {
-  isValidMove,
- , microIndex, row, col)) {
-    return false;
-  }
+  // app/engine.js
+  import { isValidMove, isMicroPlayable } from "./gameRules.js";
+  import { getMacroCellCoords } from "./boardModel.js";
+  import { checkWin } from "./gameRules.js";
+  
+  export function playMove(state, microIndex, row, col) {
+    if (!isValidMove(state, microIndex, row, col)) {
+      return false;
+    }
 
   const symbol = state.players[state.turn];
   const board = state.microBoards[microIndex];
@@ -13,7 +15,7 @@ import {
   board[row][col] = symbol;
 
   // --- 1) Controllo vittoria micro ---
-  const winner = checkMicroWin(board);
+  const winner = checkWin(board);
   if (winner) {
     const { row: macroR, col: macroC } = getMacroCellCoords(microIndex);
     state.macroBoard[macroR][macroC] = winner;
