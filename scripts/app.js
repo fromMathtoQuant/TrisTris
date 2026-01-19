@@ -26,6 +26,23 @@ const gameState = initGameState();
 // render initial placeholder
 renderBoard(gameState);
 
+
+// click sulle micro celle
+document.addEventListener("click", (e) => {
+  if (!e.target.classList.contains("micro-cell")) return;
+
+  const micro = Number(e.target.dataset.micro);
+  const row = Number(e.target.dataset.row);
+  const col = Number(e.target.dataset.col);
+
+  console.log("CLICK su:", { micro, row, col });
+
+  // Qui aggiungeremo:
+  // playMove(...)
+  // rerender UI
+});
+
+
 // register service worker
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/service-worker.js");
