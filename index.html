@@ -26,13 +26,6 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header class="app-header">
-    <h1>TrisTris</h1>
-    <div class="header-actions">
-      <button id="install-btn" class="install-btn" hidden>Installa</button>
-    </div>
-  </header>
-
   <main id="app" class="app-shell" role="main" aria-label="TrisTris">
     <div id="status-bar" class="status-bar" role="status" aria-live="polite"></div>
     <div id="board-root" class="board-placeholder" aria-label="Griglia di gioco">
@@ -44,6 +37,7 @@
     <small>© <span id="year"></span> TrisTris</small>
   </footer>
 
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0/dist/tf.min.js"></script>
   <script type="module" src="scripts/app.js"></script>
 </body>
 </html>
