@@ -1,49 +1,55 @@
-import { renderBoard } from "./ui.js";
-import { initGameState } from "../app/gameState.js";
 
-// install button logic
+// scripts/app.js
+import { renderBoard, renderStatus } from "./ui.js";
+import { initGameState } from "../app/gameState.js";
+import { playMove } from "../app/engine.js";
+
+// Anno footer
+document.getElementById("year").textContent = new Date().getFullYear();
+
+// Install prompt
 let deferredPrompt = null;
 const installBtn = document.getElementById("install-btn");
-
 window.addEventListener("beforeinstallprompt", (e) => {
   e.preventDefault();
   deferredPrompt = e;
-  installBtn.hidden = false;
+  if (installBtn) installBtn.hidden = false;
 });
-
 installBtn?.addEventListener("click", async () => {
-  deferredPrompt.prompt();
-  await deferredPrompt.userChoice;
+  deferredPrompt?.prompt();
+  await deferredPrompt?.userChoice;
   installBtn.hidden = true;
+  deferredPrompt = null;
 });
 
-// render UI placeholder
-document.getElementById("year").textContent = new Date().getFullYear();
+// Stato iniziale
+const state = initGameState();
 
-// init state (no logic yet)
-const gameState = initGameState();
+// Primo render
+renderStatus(state);
+renderBoard(state);
 
-// render initial placeholder
-renderBoard(gameState);
-
-
-// click sulle micro celle
+// Click su una micro-cella: prova a giocare la mossa e rerender
 document.addEventListener("click", (e) => {
-  if (!e.target.classList.contains("micro-cell")) return;
+  const el = e.target;
+  if (!(el instanceof HTMLElement)) return;
+  if (!el.classList.contains("micro-cell")) return;
 
-  const micro = Number(e.target.dataset.micro);
-  const row = Number(e.target.dataset.row);
-  const col = Number(e.target.dataset.col);
+  const micro = Number(el.dataset.micro);
+  const row = Number(el.dataset.row);
+  const col = Number(el.dataset.col);
 
-  console.log("CLICK su:", { micro, row, col });
-
-  // Qui aggiungeremo:
-  // playMove(...)
-  // rerender UI
+  const moved = playMove(state, micro, row, col);
+  if (moved) {
+    renderStatus(state);
+    renderBoard(state);
+  }
 });
 
-
-// register service worker
+// Service Worker
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/service-worker.js");
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/service-worker.js")
+      .catch(err => console.error("SW registration failed", err));
+  });
 }
