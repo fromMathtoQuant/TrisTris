@@ -1,54 +1,92 @@
 
 // app/gameRules.js
-// Regole minime per ora: celle vuote, rispetto micro obbligata e gestioni "micro piena".
+// Regole migliorate: gestione micro vinte + indirizzamento corretto + micro non giocabili.
 
+/** Controlla se una cella è libera */
 export function isCellEmpty(state, microIndex, row, col) {
   return state.microBoards[microIndex][row][col] === null;
 }
 
+/** Una micro è piena se tutte le celle sono occupate */
 export function isMicroFull(board) {
-  for (let r = 0; r < board.length; r++) {
-    for (let c = 0; c < board[r].length; c++) {
-      if (board[r][c] === null) return false;
-    }
-  }
-  return true;
+  return board.every(row => row.every(cell => cell !== null));
 }
 
+/** Una micro è vinta se macroBoard[microIndex] contiene "X" o "O" */
+export function isMicroWon(state, microIndex) {
+  const size = state.macroSize;
+  const row = Math.floor(microIndex / size);
+  const col = microIndex % size;
+  return state.macroBoard[row][col] !== null;
+}
+
+/** Una micro è giocabile se:
+ *  - NON è vinta
+ *  - NON è piena
+ */
 export function isMicroPlayable(state, microIndex) {
   const board = state.microBoards[microIndex];
-  // In futuro potremo anche controllare se la micro è già vinta e segnata su macroBoard
-  return !isMicroFull(board);
+  return !isMicroWon(state, microIndex) && !isMicroFull(board);
 }
 
 /**
  * Una mossa è valida se:
  * - la cella è vuota
- * - se esiste una micro obbligata ed è giocabile, devi giocare lì
- * - se la micro obbligata NON è giocabile, puoi giocare in una qualsiasi micro giocabile
+ * - la micro scelta è giocabile
+ * - se esiste una micro obbligata ed è giocabile, devi usare quella
+ * - se la micro obbligata NON è giocabile, puoi scegliere una qualsiasi micro giocabile
  */
 export function isValidMove(state, microIndex, row, col) {
   if (!isCellEmpty(state, microIndex, row, col)) return false;
+  if (!isMicroPlayable(state, microIndex)) return false;
 
   const forced = state.nextForcedCell;
+
   if (forced === null) {
-    // scelta libera: basta che la micro sia giocabile
-    return isMicroPlayable(state, microIndex);
+    return true; // nessun vincolo
   }
 
-  if (forced === microIndex) {
-    return true; // devi giocare qui
+  // Se la forced è giocabile → devi giocare lì
+  if (forced === microIndex && isMicroPlayable(state, forced)) {
+    return true;
   }
 
-  // Forced non coincide: se la forced NON è giocabile, scelta libera tra micro giocabili
+  // Se la forced NON è giocabile → validi solo micro giocabili
   if (!isMicroPlayable(state, forced)) {
     return isMicroPlayable(state, microIndex);
   }
 
-  // Altrimenti no
   return false;
 }
 
-/* Placeholders per prossimi step (vittorie) */
-export function checkMicroWin(board) { return null; }
-export function checkMacroWin(macroBoard) { return null; }
+/**
+ * Controlla se una micro ha un tris vincente.
+ * Restituisce "X", "O" o null.
+ */
+export function checkMicroWin(board) {
+  const size = 3;
+  const lines = [];
+
+  // Righe e colonne
+  for (let i = 0; i < size; i++) {
+    lines.push(board[i]); // riga
+    lines.push([board[0][i], board[1][i], board[2][i]]); // colonna
+  }
+
+  // Diagonali
+  lines.push([board[0][0], board[1][1], board[2][2]]);
+  lines.push([board[0][2], board[1][1], board[2][0]]);
+
+  for (const line of lines) {
+    if (line[0] && line[0] === line[1] && line[1] === line[2]) {
+      return line[0];
+    }
+  }
+
+  return null;
+}
+
+/** Placeholder macro */
+export function checkMacroWin(macroBoard) {
+  return null;
+}
