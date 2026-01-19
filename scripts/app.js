@@ -4,6 +4,7 @@ import { initGameState, resetGame } from "../app/gameState.js";
 import { isMicroPlayable } from "../app/gameRules.js";
 import { playMove } from "../app/engine.js";
 import { getAIMove } from "../app/ai.js";
+import { createOnlineGame, joinOnlineGame, saveGameState, loadGameState, startPolling, stopPolling, finishGame } from "../app/online.js";
 
 // Previeni zoom e selezione su iOS
 document.addEventListener('gesturestart', (e) => e.preventDefault());
@@ -19,17 +20,19 @@ if (yearEl) {
 // Install prompt
 let deferredPrompt = null;
 const installBtn = document.getElementById("install-btn");
-window.addEventListener("beforeinstallprompt", (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  if (installBtn) installBtn.hidden = false;
-});
-installBtn?.addEventListener("click", async () => {
-  deferredPrompt?.prompt();
-  await deferredPrompt?.userChoice;
-  installBtn.hidden = true;
-  deferredPrompt = null;
-});
+if (installBtn) {
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    installBtn.hidden = false;
+  });
+  installBtn.addEventListener("click", async () => {
+    deferredPrompt?.prompt();
+    await deferredPrompt?.userChoice;
+    installBtn.hidden = true;
+    deferredPrompt = null;
+  });
+}
 
 // Stato iniziale
 const state = initGameState();
@@ -62,6 +65,90 @@ document.addEventListener("click", async (e) => {
     return;
   }
 
+  /* ---- BOTTONE ONLINE ---- */
+  if (el.dataset.action === "start-online") {
+    state.ui.screen = "online";
+    renderStatus(state);
+    renderBoard(state);
+    return;
+  }
+
+  /* ---- CREA PARTITA ONLINE ---- */
+  if (el.dataset.action === "create-online") {
+    const result = await createOnlineGame();
+    if (result.success) {
+      state.onlineGameCode = result.gameCode;
+      state.onlinePlayerId = result.playerId;
+      state.onlinePlayer1Id = result.playerId;
+      state.onlineWaiting = true;
+      renderStatus(state);
+      renderBoard(state);
+      
+      // Aspetta che qualcuno si unisca
+      waitForOpponent(result.gameCode);
+    } else {
+      alert("Errore nella creazione della partita. Riprova.");
+    }
+    return;
+  }
+
+  /* ---- UNISCITI A PARTITA ONLINE ---- */
+  if (el.dataset.action === "join-online") {
+    const input = document.getElementById("join-code-input");
+    const code = input?.value?.trim().toUpperCase();
+    
+    if (!code || code.length !== 6) {
+      alert("Inserisci un codice valido di 6 caratteri");
+      return;
+    }
+    
+    const result = await joinOnlineGame(code);
+    if (result.success) {
+      resetGame(state, "online");
+      state.onlineGameCode = result.gameCode;
+      state.onlinePlayerId = result.playerId;
+      
+      // Carica lo stato iniziale
+      const savedState = await loadGameState(result.gameCode);
+      if (savedState) {
+        Object.assign(state, savedState);
+      }
+      
+      // Ottieni player1 ID
+      try {
+        const gameResult = await window.storage.get(`game:${result.gameCode}`, true);
+        if (gameResult) {
+          const gameData = JSON.parse(gameResult.value);
+          state.onlinePlayer1Id = gameData.player1;
+        }
+      } catch (e) {
+        console.error("Errore caricamento game data:", e);
+      }
+      
+      renderStatus(state);
+      renderBoard(state);
+      
+      // Avvia polling
+      startOnlinePolling(result.gameCode);
+    } else {
+      alert(result.error || "Errore nell'unione alla partita");
+    }
+    return;
+  }
+
+  /* ---- ANNULLA ONLINE ---- */
+  if (el.dataset.action === "cancel-online") {
+    if (state.onlinePollingId) {
+      stopPolling(state.onlinePollingId);
+    }
+    state.ui.screen = "menu";
+    state.onlineWaiting = false;
+    state.onlineGameCode = null;
+    renderStatus(state);
+    renderBoard(state);
+    return;
+  }
+
   /* ---- SELEZIONE DIFFICOLTÀ ---- */
   if (el.dataset.difficulty) {
     const difficulty = el.dataset.difficulty;
@@ -83,6 +170,9 @@ document.addEventListener("click", async (e) => {
   if (el.dataset.action === "back-to-menu") {
     const confirm = window.confirm("Sei sicuro di voler tornare al menu? La partita corrente sarà persa.");
     if (confirm) {
+      if (state.onlinePollingId) {
+        stopPolling(state.onlinePollingId);
+      }
       state.ui.screen = "menu";
       renderStatus(state);
       renderBoard(state);
@@ -108,6 +198,15 @@ document.addEventListener("click", async (e) => {
   
     if (!isMicroPlayable(state, idx)) return;
   
+    // In modalità online, blocca se non è il tuo turno
+    if (state.gameMode === "online") {
+      const isMyTurn = (state.turn === 0 && state.onlinePlayerId === state.onlinePlayer1Id) ||
+                       (state.turn === 1 && state.onlinePlayerId !== state.onlinePlayer1Id);
+      if (!isMyTurn) {
+        return; // Non è il tuo turno
+      }
+    }
+  
     animateMicroZoomIn(cell, idx);
     return;
   }
@@ -128,6 +227,15 @@ document.addEventListener("click", async (e) => {
 // ==========================================
 
 async function handleMove(micro, row, col) {
+  // In modalità online, verifica che sia il tuo turno
+  if (state.gameMode === "online") {
+    const isMyTurn = (state.turn === 0 && state.onlinePlayerId === state.onlinePlayer1Id) ||
+                     (state.turn === 1 && state.onlinePlayerId !== state.onlinePlayer1Id);
+    if (!isMyTurn) {
+      return; // Non è il tuo turno
+    }
+  }
+
   const result = playMove(state, micro, row, col);
 
   if (result.moved) {
@@ -136,8 +244,21 @@ async function handleMove(micro, row, col) {
     renderStatus(state);
     renderBoard(state);
 
+    // Salva stato online
+    if (state.gameMode === "online") {
+      await saveGameState(state.onlineGameCode, {
+        macroBoard: state.macroBoard,
+        microBoards: state.microBoards,
+        turn: state.turn,
+        nextForcedCell: state.nextForcedCell
+      });
+    }
+
     // Controlla fine partita
     if (result.gameEnd) {
+      if (state.gameMode === "online") {
+        await finishGame(state.onlineGameCode, result.gameEnd.winner);
+      }
       setTimeout(() => {
         showGameEndDialog(result.gameEnd.winner);
       }, 500);
@@ -155,7 +276,10 @@ async function playAITurn() {
   // Delay per rendere più naturale
   await new Promise(resolve => setTimeout(resolve, 800));
   
-  const aiMove = getAIMove(state);
+  renderStatus(state);
+  renderBoard(state);
+  
+  const aiMove = await getAIMove(state);
   
   if (!aiMove) {
     console.error("AI non ha trovato mosse valide");
@@ -177,6 +301,61 @@ async function playAITurn() {
 }
 
 // ==========================================
+// ONLINE MULTIPLAYER
+// ==========================================
+
+async function waitForOpponent(gameCode) {
+  const checkInterval = setInterval(async () => {
+    try {
+      const result = await window.storage.get(`game:${gameCode}`, true);
+      if (result) {
+        const gameData = JSON.parse(result.value);
+        if (gameData.status === "playing") {
+          clearInterval(checkInterval);
+          resetGame(state, "online");
+          state.onlineWaiting = false;
+          renderStatus(state);
+          renderBoard(state);
+          
+          // Avvia polling
+          startOnlinePolling(gameCode);
+        }
+      }
+    } catch (e) {
+      console.error("Errore controllo avversario:", e);
+    }
+  }, 1000);
+  
+  // Timeout dopo 5 minuti
+  setTimeout(() => {
+    clearInterval(checkInterval);
+    if (state.onlineWaiting) {
+      alert("Tempo scaduto. Nessun avversario si è unito.");
+      state.ui.screen = "menu";
+      state.onlineWaiting = false;
+      renderStatus(state);
+      renderBoard(state);
+    }
+  }, 300000);
+}
+
+function startOnlinePolling(gameCode) {
+  const pollingId = startPolling(gameCode, state.onlinePlayerId, (newState) => {
+    if (newState) {
+      state.macroBoard = newState.macroBoard;
+      state.microBoards = newState.microBoards;
+      state.turn = newState.turn;
+      state.nextForcedCell = newState.nextForcedCell;
+      
+      renderStatus(state);
+      renderBoard(state);
+    }
+  });
+  
+  state.onlinePollingId = pollingId;
+}
+
+// ==========================================
 // DIALOG FINE PARTITA
 // ==========================================
 
@@ -190,11 +369,22 @@ function showGameEndDialog(winner) {
     } else {
       message = "😔 L'AI HA VINTO\n\nRiprova con una difficoltà diversa!";
     }
+  } else if (state.gameMode === "online") {
+    const mySymbol = state.onlinePlayerId === state.onlinePlayer1Id ? "X" : "O";
+    if (winner === mySymbol) {
+      message = "🎉 HAI VINTO! 🎉\n\nComplimenti per la vittoria!";
+    } else {
+      message = "😔 HAI PERSO\n\nL'avversario ha vinto questa volta!";
+    }
   } else {
     message = `🎉 VITTORIA GIOCATORE ${winner}! 🎉\n\nComplimenti per la vittoria!`;
   }
   
   alert(message);
+  
+  if (state.onlinePollingId) {
+    stopPolling(state.onlinePollingId);
+  }
   
   // Torna al menu
   state.ui.screen = "menu";
