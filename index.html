@@ -1,25 +1,29 @@
+
 <!doctype html>
 <html lang="it">
-<head> 
+<head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="TrisTris" />
+  <meta name="description" content="TrisTris – estensione di Tris come PWA" />
   <title>TrisTris</title>
 
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="theme-color" content="#0f172a" />
-
+  <link rel="icon" href="assets/icons/icon-192.png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
   <link rel="stylesheet" href="styles/styles.css" />
 </head>
 <body>
-
   <header class="app-header">
     <h1>TrisTris</h1>
-    <button id="install-btn" hidden>Installa</button>
+    <div class="header-actions">
+      <button id="install-btn" class="install-btn" hidden>Installa</button>
+    </div>
   </header>
 
-  <main id="app" class="app-shell">
-    <div id="board-root" class="board-placeholder">
+  <main id="app" class="app-shell" role="main" aria-label="TrisTris">
+    <div id="status-bar" class="status-bar" role="status" aria-live="polite"></div>
+    <div id="board-root" class="board-placeholder" aria-label="Griglia di gioco">
       <p>Caricamento TrisTris…</p>
     </div>
   </main>
@@ -31,3 +35,4 @@
   <script type="module" src="scripts/app.js"></script>
 </body>
 </html>
+``
