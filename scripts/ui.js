@@ -1,23 +1,23 @@
 
 // scripts/ui.js
-import { getMicroBoardIndex } from "../app/boardModel.js";
-import { isMicroPlayable } from "../app/gameRules.js";
+import { getMicroBoardIndex, getMacroCellCoords } from "../app/boardModel.js";
+import { isMicroPlayable, isMicroWon } from "../app/gameRules.js";
 
-/** Barra di stato in alto */
+/** Barra di stato */
 export function renderStatus(state) {
   const status = document.getElementById("status-bar");
-
   const player = state.players[state.turn];
+
   if (state.nextForcedCell === null) {
     status.textContent = `Turno: ${player} • Scegli una microgriglia libera`;
   } else {
-    const targetRow = Math.floor(state.nextForcedCell / state.macroSize);
-    const targetCol = state.nextForcedCell % state.macroSize;
-    status.textContent = `Turno: ${player} • Gioca nella microgriglia (${targetRow + 1}, ${targetCol + 1})`;
+    const r = Math.floor(state.nextForcedCell / state.macroSize);
+    const c = state.nextForcedCell % state.macroSize;
+    status.textContent = `Turno: ${player} • Gioca nella micro (${r + 1}, ${c + 1})`;
   }
 }
 
-/** Render della macrogriglia + microgriglie */
+/** Render della macrogriglia */
 export function renderBoard(state) {
   const root = document.getElementById("board-root");
   root.innerHTML = "";
@@ -27,36 +27,52 @@ export function renderBoard(state) {
 
   const size = state.macroSize;
 
-  // Quali micro sono attive?
+  // Determina quali microgrid sono attive
   const forced = state.nextForcedCell;
-  const activeSet = new Set();
+  const active = new Set();
+
   if (forced !== null && isMicroPlayable(state, forced)) {
-    activeSet.add(forced);
+    active.add(forced);
   } else {
-    // nessun vincolo: attive tutte le micro giocabili
-    for (let i = 0; i < size * size; i++) {
-      if (isMicroPlayable(state, i)) activeSet.add(i);
+    // nessun vincolo o micro obbligata non giocabile → tutte le playable attive
+    for (let i = 0; i < 9; i++) {
+      if (isMicroPlayable(state, i)) active.add(i);
     }
   }
 
+  // Render celle macro
   for (let r = 0; r < size; r++) {
     for (let c = 0; c < size; c++) {
       const macroCell = document.createElement("div");
       macroCell.className = "macro-cell";
 
       const microIndex = getMicroBoardIndex(r, c);
-      const micro = renderMicroGrid(state, microIndex);
 
-      // Evidenzia/Disabilita
-      if (activeSet.has(microIndex)) {
-        micro.classList.add("micro-grid--active");
-        micro.setAttribute("aria-label", `Microgriglia ${r + 1},${c + 1} (attiva)`);
-      } else {
-        micro.classList.add("micro-grid--disabled");
-        micro.setAttribute("aria-label", `Microgriglia ${r + 1},${c + 1} (non giocabile ora)`);
+      const microGrid = renderMicroGrid(state, microIndex);
+
+      // Micro vinta?
+      if (isMicroWon(state, microIndex)) {
+        microGrid.classList.add("micro-grid--won");
+
+        const winner = state.macroBoard[r][c];
+
+        const overlay = document.createElement("div");
+        overlay.className = `micro-winner-overlay ${winner}`;
+        overlay.textContent = winner;
+
+        microGrid.appendChild(overlay);
       }
 
-      macroCell.appendChild(micro);
+      // Highlight active / disabled
+      if (!isMicroWon(state, microIndex)) {
+        if (active.has(microIndex)) {
+          microGrid.classList.add("micro-grid--active");
+        } else {
+          microGrid.classList.add("micro-grid--disabled");
+        }
+      }
+
+      macroCell.appendChild(microGrid);
       macro.appendChild(macroCell);
     }
   }
@@ -64,12 +80,12 @@ export function renderBoard(state) {
   root.appendChild(macro);
 }
 
-/** Render singola microgriglia 3x3 */
+/** Render di una micro-griglia 3×3 */
 export function renderMicroGrid(state, microIndex) {
   const board = state.microBoards[microIndex];
   const micro = document.createElement("div");
   micro.className = "micro-grid";
-  micro.dataset.index = String(microIndex);
+  micro.dataset.index = microIndex;
 
   const size = state.microSize;
 
@@ -77,13 +93,11 @@ export function renderMicroGrid(state, microIndex) {
     for (let c = 0; c < size; c++) {
       const cell = document.createElement("button");
       cell.className = "micro-cell";
-      cell.dataset.row = String(r);
-      cell.dataset.col = String(c);
-      cell.dataset.micro = String(microIndex);
+      cell.dataset.row = r;
+      cell.dataset.col = c;
+      cell.dataset.micro = microIndex;
 
-      const val = board[r][c];
-      cell.textContent = val ?? "";
-      cell.setAttribute("aria-label", `Cella ${r + 1},${c + 1} ${val ? `(${val})` : "(vuota)"}`);
+      cell.textContent = board[r][c] ?? "";
 
       micro.appendChild(cell);
     }
