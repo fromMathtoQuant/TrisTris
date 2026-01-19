@@ -1,4 +1,3 @@
-
 // app/gameState.js
 export function initGameState() {
   return {
@@ -6,17 +5,26 @@ export function initGameState() {
     microSize: 3,
     players: ["X", "O"],
     turn: 0, // 0: X, 1: O
-    // macroBoard può contenere null / "X" / "O" per esito micro (in futuro)
+    // macroBoard può contenere null / "X" / "O" per esito micro
     macroBoard: createEmptyMatrix(3),
     // 9 microgriglie 3x3
     microBoards: createNestedBoards(3, 3),
     // Microgriglia obbligata per la prossima mossa (null = libera)
     nextForcedCell: null,
     ui: {
-      viewingMicro: null
+      viewingMicro: null,
+      screen: "menu" // "menu" | "game"
     }
-
   };
+}
+
+export function resetGame(state) {
+  state.turn = 0;
+  state.macroBoard = createEmptyMatrix(3);
+  state.microBoards = createNestedBoards(3, 3);
+  state.nextForcedCell = null;
+  state.ui.viewingMicro = null;
+  state.ui.screen = "game";
 }
 
 function createEmptyMatrix(size) {
