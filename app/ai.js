@@ -1,21 +1,21 @@
 // app/ai.js
 import { isMicroPlayable, isCellEmpty } from "./gameRules.js";
+import { getRLMove } from "./rl.js";
+import { getMCTSMove } from "./mcts.js";
 
 /**
  * AI Bot - trova la mossa migliore in base alla difficoltà
  */
-export function getAIMove(state) {
+export async function getAIMove(state) {
   const difficulty = state.aiDifficulty;
   
   switch (difficulty) {
     case "easy":
       return getRandomMove(state);
     case "medium":
-      // Per ora usa mosse casuali - implementeremo RL/MCTS dopo
-      return getRandomMove(state);
+      return await getRLMove(state);
     case "hard":
-      // Per ora usa mosse casuali - implementeremo RL/MCTS dopo
-      return getRandomMove(state);
+      return await getMCTSMove(state, 1000); // 1000 iterazioni MCTS
     default:
       return getRandomMove(state);
   }
@@ -70,22 +70,4 @@ function getAllAvailableMoves(state) {
   }
   
   return moves;
-}
-
-/**
- * Placeholder per RL Bot (da implementare)
- */
-export function getRLMove(state) {
-  // TODO: Implementare Reinforcement Learning
-  console.log("RL Bot non ancora implementato");
-  return getRandomMove(state);
-}
-
-/**
- * Placeholder per MCTS Bot (da implementare)
- */
-export function getMCTSMove(state) {
-  // TODO: Implementare Monte Carlo Tree Search
-  console.log("MCTS Bot non ancora implementato");
-  return getRandomMove(state);
 }
