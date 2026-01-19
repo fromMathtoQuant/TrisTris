@@ -1,0 +1,28 @@
+
+:root {
+  --bg: #0b1220;
+  --text: #e5e7eb;
+  --card: #1f2937;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, sans-serif;
+}
+
+.app-header, .app-footer {
+  padding: 1rem;
+  background: #0f172a;
+  text-align: center;
+}
+
+.board-placeholder {
+  margin: 2rem auto;
+  padding: 2rem;
+  max-width: 700px;
+  background: var(--card);
+  border-radius: 12px;
+  text-align: center;
+}
