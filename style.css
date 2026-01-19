@@ -1,46 +1,66 @@
 
-:root {
-  --bg: #0b1220;
-  --text: #e5e7eb;
-  --card: #1f2937;
+:root{
+  --bg:#0b1220;
+  --card:#111827;
+  --text:#e5e7eb;
+  --accent:#22d3ee;
+  --accent-2:#a78bfa;
 }
 
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: system-ui, sans-serif;
+*{ box-sizing:border-box; }
+html, body { height: 100%; }
+body{
+  margin:0;
+  background:linear-gradient(180deg,var(--bg),#0f172a 60%);
+  color:var(--text);
+  font:16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji","Segoe UI Emoji";
+  display:flex;flex-direction:column;
 }
 
-.app-header, .app-footer {
-  padding: 1rem;
-  background: #0f172a;
-  text-align: center;
+.app-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:1rem clamp(1rem,3vw,2rem);
+  background:#0f172a; position:sticky; top:0; z-index:10;
+  border-bottom:1px solid #1f2937;
+}
+.app-header h1{margin:0;font-size:clamp(1.1rem,2.5vw,1.5rem)}
+.install-btn{
+  background:linear-gradient(90deg,var(--accent),var(--accent-2));
+  color:#0b1220;border:none;border-radius:8px;padding:.6rem .9rem;font-weight:700;cursor:pointer
+}
+.install-btn:focus{outline:2px solid #22d3ee;outline-offset:2px}
+
+.app-shell{flex:1;display:flex;flex-direction:column;gap:1rem;align-items:center;padding:1rem}
+
+.status-bar{
+  width:min(960px,95vw);
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:12px;
+  padding:.75rem 1rem;
+  font-weight:600;
 }
 
-.board-placeholder {
-  margin: 2rem auto;
-  padding: 2rem;
-  max-width: 700px;
-  background: var(--card);
-  border-radius: 12px;
-  text-align: center;
+.board-placeholder{
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+  border-radius:16px; padding:1rem; width:min(960px,95vw);
 }
 
+/* ---------- Griglie ---------- */
 
 /* MACROGRID 3×3 */
 .macro-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
-  padding: 16px;
+  padding: 12px;
 }
 
 /* MACRO cella */
 .macro-cell {
   background: var(--card);
   padding: 6px;
-  border-radius: 10px;
+  border-radius: 12px;
   display: flex;
   align-items: stretch;
   justify-content: stretch;
@@ -54,29 +74,44 @@ body {
   grid-template-columns: repeat(3, 1fr);
   flex: 1;
   gap: 4px;
+  position: relative;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+
+/* Evidenzia micro attive / disabilitate */
+.micro-grid--active {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px rgba(34,211,238,.25) inset;
+}
+.micro-grid--disabled {
+  opacity: .45;
+  pointer-events: none;
+  filter: grayscale(.3);
 }
 
 /* singola cella micro */
 .micro-cell {
   background: #0f172a;
   border: 1px solid #475569;
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--text);
-  font-size: 1.3rem;
-  font-weight: 600;
+  font-size: 1.25rem;
+  font-weight: 700;
   cursor: pointer;
   aspect-ratio: 1 / 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background .15s;
+  transition: background .15s, transform .05s ease;
 }
+.micro-cell:hover { background: #1e293b; }
+.micro-cell:active { background: #475569; transform: scale(.98); }
 
-.micro-cell:hover {
-  background: #1e293b;
+.app-footer{padding:1rem; text-align:center; border-top:1px solid #1f2937; background:#0f172a}
+
+@media (prefers-color-scheme: light){
+  :root{--bg:#f6f7fb;--card:#ffffff;--text:#1f2937}
+  body{background:#f3f4f6;color:#111827}
+  .app-header,.app-footer{background:#ffffff}
 }
-
-.micro-cell:active {
-  background: #475569;
-}
-
