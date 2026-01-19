@@ -1,26 +1,26 @@
 // scripts/app.js - DEBUG CON ALERT
-alert("1. app.js caricato");
+// alert("1. app.js caricato");
 
 try {
   const { renderBoard, renderStatus } = await import("./ui.js");
-  alert("2. ui.js importato OK");
+  // alert("2. ui.js importato OK");
 
   const { initGameState } = await import("../app/gameState.js");
-  alert("3. gameState.js importato OK");
+  // alert("3. gameState.js importato OK");
 
   const { isMicroPlayable } = await import("../app/gameRules.js");
-  alert("4. gameRules.js importato OK");
+  // alert("4. gameRules.js importato OK");
 
   const { playMove } = await import("../app/engine.js");
-  alert("5. engine.js importato OK");
+  // alert("5. engine.js importato OK");
 
   // Anno footer
   const yearEl = document.getElementById("year");
   if (yearEl) {
     yearEl.textContent = new Date().getFullYear();
-    alert("6. Anno impostato");
+    // alert("6. Anno impostato");
   } else {
-    alert("6. ERRORE: elemento #year non trovato");
+    // alert("6. ERRORE: elemento #year non trovato");
   }
 
   // Install prompt
@@ -39,16 +39,16 @@ try {
   });
 
   // Stato iniziale
-  alert("7. Inizializzo stato...");
+  // alert("7. Inizializzo stato...");
   const state = initGameState();
-  alert("8. Stato creato: " + JSON.stringify(state).substring(0, 100));
+  // alert("8. Stato creato: " + JSON.stringify(state).substring(0, 100));
 
   // Primo render
-  alert("9. Rendering status...");
+  // alert("9. Rendering status...");
   renderStatus(state);
-  alert("10. Rendering board...");
+  // alert("10. Rendering board...");
   renderBoard(state);
-  alert("11. Render completato! Il gioco dovrebbe essere visibile.");
+  // alert("11. Render completato! Il gioco dovrebbe essere visibile.");
 
   // ==========================================
   // CLICK HANDLER PRINCIPALE
