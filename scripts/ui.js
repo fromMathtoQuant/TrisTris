@@ -3,94 +3,150 @@
 import { getMicroBoardIndex, getMacroCellCoords } from "../app/boardModel.js";
 import { isMicroPlayable, isMicroWon } from "../app/gameRules.js";
 
-/** Barra di stato */
+/* ------------------------------
+   BAR STATUS
+-------------------------------- */
 export function renderStatus(state) {
   const status = document.getElementById("status-bar");
   const player = state.players[state.turn];
 
+  if (state.ui.viewingMicro !== null) {
+    const idx = state.ui.viewingMicro;
+    const r = Math.floor(idx / 3);
+    const c = idx % 3;
+    status.textContent = `Stai giocando nella micro (${r+1}, ${c+1})`;
+    return;
+  }
+
   if (state.nextForcedCell === null) {
-    status.textContent = `Turno: ${player} • Scegli una microgriglia libera`;
+    status.textContent = `Turno: ${player} — scegli una micro`;
   } else {
-    const r = Math.floor(state.nextForcedCell / state.macroSize);
-    const c = state.nextForcedCell % state.macroSize;
-    status.textContent = `Turno: ${player} • Gioca nella micro (${r + 1}, ${c + 1})`;
+    const r = Math.floor(state.nextForcedCell / 3);
+    const c = state.nextForcedCell % 3;
+    status.textContent = `Turno: ${player} — devi giocare nella micro (${r+1}, ${c+1})`;
   }
 }
 
-/** Render della macrogriglia */
+/* ------------------------------
+   BOARD ROOT SWITCH
+-------------------------------- */
 export function renderBoard(state) {
   const root = document.getElementById("board-root");
+
+  if (state.ui.viewingMicro !== null) {
+    renderMicroFullscreen(state, state.ui.viewingMicro, root);
+  } else {
+    renderMacro(state, root);
+  }
+}
+
+/* ------------------------------
+   MACROGRID
+-------------------------------- */
+function renderMacro(state, root) {
   root.innerHTML = "";
 
   const macro = document.createElement("div");
   macro.className = "macro-grid";
 
-  const size = state.macroSize;
+  const active = getActiveMicroSet(state);
 
-  // Determina quali microgrid sono attive
-  const forced = state.nextForcedCell;
-  const active = new Set();
+  for (let idx = 0; idx < 9; idx++) {
+    const macroCell = document.createElement("div");
+    macroCell.className = "macro-cell";
+    macroCell.dataset.micro = idx;
 
-  if (forced !== null && isMicroPlayable(state, forced)) {
-    active.add(forced);
-  } else {
-    // nessun vincolo o micro obbligata non giocabile → tutte le playable attive
-    for (let i = 0; i < 9; i++) {
-      if (isMicroPlayable(state, i)) active.add(i);
+    if (active.has(idx)) {
+      macroCell.classList.add("micro-grid--active");
+    } else {
+      macroCell.classList.add("micro-grid--disabled");
     }
-  }
 
-  // Render celle macro
-  for (let r = 0; r < size; r++) {
-    for (let c = 0; c < size; c++) {
-      const macroCell = document.createElement("div");
-      macroCell.className = "macro-cell";
+    const r = Math.floor(idx / 3);
+    const c = idx % 3;
 
-      const microIndex = getMicroBoardIndex(r, c);
-
-      const microGrid = renderMicroGrid(state, microIndex);
-
-      // Micro vinta?
-      if (isMicroWon(state, microIndex)) {
-        microGrid.classList.add("micro-grid--won");
-
-        const winner = state.macroBoard[r][c];
-
-        const overlay = document.createElement("div");
-        overlay.className = `micro-winner-overlay ${winner}`;
-        overlay.textContent = winner;
-
-        microGrid.appendChild(overlay);
-      }
-
-      // Highlight active / disabled
-      if (!isMicroWon(state, microIndex)) {
-        if (active.has(microIndex)) {
-          microGrid.classList.add("micro-grid--active");
-        } else {
-          microGrid.classList.add("micro-grid--disabled");
-        }
-      }
-
-      macroCell.appendChild(microGrid);
-      macro.appendChild(macroCell);
+    if (isMicroWon(state, idx)) {
+      // mostra overlay vinta
+      const winner = state.macroBoard[r][c];
+      const overlay = document.createElement("div");
+      overlay.className = `micro-winner-overlay ${winner}`;
+      overlay.textContent = winner;
+      macroCell.appendChild(overlay);
+    } else {
+      // micro non vinta → preview ridotta o griglia ghost
+      macroCell.appendChild(renderMicroPreview(state, idx));
     }
+
+    macro.appendChild(macroCell);
   }
 
   root.appendChild(macro);
 }
 
-/** Render di una micro-griglia 3×3 */
+/* ------------------------------
+   MICRO FULLSCREEN
+-------------------------------- */
+function renderMicroFullscreen(state, microIndex, root) {
+  root.innerHTML = "";
+
+  const overlay = document.createElement("div");
+  overlay.className = "micro-fullscreen-overlay";
+
+  /* HEADER */
+  const header = document.createElement("div");
+  header.className = "micro-fullscreen-header";
+
+  const closeBtn = document.createElement("button");
+  closeBtn.className = "micro-close-btn";
+  closeBtn.textContent = "✕";
+  closeBtn.dataset.closeMicro = "true";
+
+  header.appendChild(closeBtn);
+  overlay.appendChild(header);
+
+  /* BODY */
+  const body = document.createElement("div");
+  body.className = "micro-fullscreen-body";
+
+  const microGrid = renderMicroGrid(state, microIndex);
+  microGrid.classList.add("fullscreen-micro");
+
+  body.appendChild(microGrid);
+  overlay.appendChild(body);
+
+  root.appendChild(overlay);
+}
+
+/* ------------------------------
+   MICRO PREVIEW (in macro)
+-------------------------------- */
+function renderMicroPreview(state, microIndex) {
+  const preview = document.createElement("div");
+  preview.className = "micro-grid micro-preview";
+
+  const board = state.microBoards[microIndex];
+  for (let r = 0; r < 3; r++) {
+    for (let c = 0; c < 3; c++) {
+      const cell = document.createElement("div");
+      cell.className = "micro-cell";
+      cell.textContent = board[r][c] ?? "";
+      preview.appendChild(cell);
+    }
+  }
+  return preview;
+}
+
+/* ------------------------------
+   MICRO GRID FULL VERSION
+-------------------------------- */
 export function renderMicroGrid(state, microIndex) {
   const board = state.microBoards[microIndex];
   const micro = document.createElement("div");
   micro.className = "micro-grid";
   micro.dataset.index = microIndex;
 
-  const size = state.microSize;
-
-  for (let r = 0; r < size; r++) {
-    for (let c = 0; c < size; c++) {
+  for (let r = 0; r < 3; r++) {
+    for (let c = 0; c < 3; c++) {
       const cell = document.createElement("button");
       cell.className = "micro-cell";
       cell.dataset.row = r;
@@ -104,4 +160,23 @@ export function renderMicroGrid(state, microIndex) {
   }
 
   return micro;
+}
+
+/* ------------------------------
+   HELPERS
+-------------------------------- */
+function getActiveMicroSet(state) {
+  const active = new Set();
+  const forced = state.nextForcedCell;
+
+  if (forced !== null && isMicroPlayable(state, forced)) {
+    active.add(forced);
+    return active;
+  }
+
+  for (let i = 0; i < 9; i++) {
+    if (isMicroPlayable(state, i)) active.add(i);
+  }
+
+  return active;
 }
