@@ -146,6 +146,7 @@ function renderMicroFullscreen(state, microIndex, root) {
   header.className = "micro-fullscreen-header";
 
   const closeBtn = document.createElement("button");
+  closeBtn.type = "button"; 
   closeBtn.className = "micro-close-btn";
   closeBtn.textContent = "✕";
   closeBtn.dataset.closeMicro = "true";
