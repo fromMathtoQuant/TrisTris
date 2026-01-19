@@ -26,3 +26,57 @@ body {
   border-radius: 12px;
   text-align: center;
 }
+
+
+/* MACROGRID 3×3 */
+.macro-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 16px;
+}
+
+/* MACRO cella */
+.macro-cell {
+  background: var(--card);
+  padding: 6px;
+  border-radius: 10px;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  aspect-ratio: 1 / 1;
+  border: 2px solid #334155;
+}
+
+/* MICROGRID 3×3 */
+.micro-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  flex: 1;
+  gap: 4px;
+}
+
+/* singola cella micro */
+.micro-cell {
+  background: #0f172a;
+  border: 1px solid #475569;
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 1.3rem;
+  font-weight: 600;
+  cursor: pointer;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s;
+}
+
+.micro-cell:hover {
+  background: #1e293b;
+}
+
+.micro-cell:active {
+  background: #475569;
+}
+
