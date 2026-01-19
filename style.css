@@ -296,12 +296,18 @@ body{
   flex-direction: column;
   z-index: 9999;
   padding: 1rem;
+  z-index: 9999;
+  pointer-events: auto;
+
 }
 
 .micro-fullscreen-header {
   display: flex;
   justify-content: flex-end;
   padding: .5rem;
+  position: relative;
+  z-index: 999999; /* sopra tutto */
+  pointer-events: auto;
 }
 
 .micro-close-btn {
@@ -310,6 +316,9 @@ body{
   background: transparent;
   border: none;
   cursor: pointer;
+  position: relative;
+  z-index: 999999;
+  pointer-events: auto;
 }
 
 .micro-fullscreen-body {
