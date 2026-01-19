@@ -46,48 +46,172 @@ body{
   border-radius:16px; padding:1rem; width:min(960px,95vw);
 }
 
-/* ---------- Griglie ---------- */
+/* ---------------------------------- */
+/*       TRISTRIS BOARD STYLE         */
+/* ---------------------------------- */
 
-/* MACROGRID 3×3 */
+/* Colori */
+:root {
+  --blue-dark: #0b3a57;
+  --blue-light: #176c96;
+  --line: #ffffff;
+}
+
+/* ==================================
+   MACROGRID
+================================== */
 .macro-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  padding: 12px;
+  width: min(700px, 92vw);
+  aspect-ratio: 1 / 1;
+  margin: auto;
+  position: relative;
 }
 
-/* MACRO cella */
+/* Sfondo scacchiera macro */
+.macro-cell:nth-child(odd) {
+  background: var(--blue-dark);
+}
+.macro-cell:nth-child(even) {
+  background: var(--blue-light);
+}
+
 .macro-cell {
-  background: var(--card);
-  padding: 6px;
-  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: stretch;
   justify-content: stretch;
-  aspect-ratio: 1 / 1;
-  border: 2px solid #334155;
 }
 
-/* MICROGRID 3×3 */
+/* Linee macro verticali */
+.macro-grid::before,
+.macro-grid::after {
+  content: "";
+  position: absolute;
+  left: 33.3333%;
+  top: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--line);
+}
+.macro-grid::after {
+  left: 66.6666%;
+}
+
+/* Linee macro orizzontali */
+.macro-grid::before,
+.macro-grid::after {
+  transform-origin: center;
+}
+
+/* Aggiungiamo linee orizzontali separate */
+.macro-grid .macro-cell:nth-child(4)::before,
+.macro-grid .macro-cell:nth-child(5)::before,
+.macro-grid .macro-cell:nth-child(6)::before {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: var(--line);
+}
+
+.macro-grid .macro-cell:nth-child(7)::before,
+.macro-grid .macro-cell:nth-child(8)::before,
+.macro-grid .macro-cell:nth-child(9)::before {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: var(--line);
+}
+
+/* ==================================
+   MICROGRID (interno a ogni cella)
+================================== */
+
 .micro-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   flex: 1;
-  gap: 4px;
   position: relative;
-  transition: transform .12s ease, box-shadow .12s ease;
 }
 
-/* Evidenzia micro attive / disabilitate */
+/* Sfondo scacchiera nelle micro */
+.micro-cell:nth-child(odd) {
+  background: rgba(255, 255, 255, 0.05);
+}
+.micro-cell:nth-child(even) {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Celle */
+.micro-cell {
+  border: none;
+  color: white;
+  font-size: 1.4rem;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Linee delle microgriglie */
+.micro-grid::before,
+.micro-grid::after {
+  content: "";
+  position: absolute;
+  left: 33.3333%;
+  top: 0;
+  width: 2px;
+  height: 100%;
+  background: var(--line);
+  opacity: 0.6;
+}
+.micro-grid::after {
+  left: 66.6666%;
+}
+
+/* linee orizzontali micro */
+.micro-grid .micro-cell:nth-child(4)::before,
+.micro-grid .micro-cell:nth-child(5)::before,
+.micro-grid .micro-cell:nth-child(6)::before {
+  content: "";
+  position: absolute;
+  top: 33.3333%;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--line);
+  opacity: 0.6;
+}
+
+.micro-grid .micro-cell:nth-child(7)::before,
+.micro-grid .micro-cell:nth-child(8)::before,
+.micro-grid .micro-cell:nth-child(9)::before {
+  content: "";
+  position: absolute;
+  top: 66.6666%;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--line);
+  opacity: 0.6;
+}
+
+/* Highlight micro attive */
 .micro-grid--active {
-  outline: 3px solid var(--accent);
-  outline-offset: 2px;
-  box-shadow: 0 0 0 2px rgba(34,211,238,.25) inset;
+  box-shadow: 0 0 0 4px yellow inset;
 }
 .micro-grid--disabled {
-  opacity: .45;
+  opacity: .4;
   pointer-events: none;
-  filter: grayscale(.3);
 }
 
 /* singola cella micro */
