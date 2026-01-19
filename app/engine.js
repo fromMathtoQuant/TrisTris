@@ -1,16 +1,30 @@
-import { isValidMove } from "./gameRules.js";
 
-export function playMove(state, macroIndex, row, col) {
-  if (!isValidMove(state, macroIndex, row, col)) return state;
+// app/engine.js
+import { isValidMove, isMicroPlayable } from "./gameRules.js";
 
-  const board = state.microBoards[macroIndex];
-  board[row][col] = state.players[state.turn];
+/**
+ * Prova a giocare una mossa.
+ * @returns {boolean} true se la mossa è stata eseguita, false altrimenti.
+ */
+export function playMove(state, microIndex, row, col) {
+  if (!isValidMove(state, microIndex, row, col)) {
+    return false;
+  }
 
-  // placeholder: rule to determine forced next move
-  state.nextForcedCell = row * state.microSize + col;
+  const symbol = state.players[state.turn];
+  const board = state.microBoards[microIndex];
 
-  // alterna giocatore
+  // Applica la mossa
+  board[row][col] = symbol;
+
+  // TODO: in futuro -> checkMicroWin(board) e aggiornare macroBoard
+
+  // Calcola la prossima micro obbligata per l'avversario
+  const nextCandidate = row * state.microSize + col;
+  state.nextForcedCell = isMicroPlayable(state, nextCandidate) ? nextCandidate : null;
+
+  // Alterna turno
   state.turn = 1 - state.turn;
 
-  return state;
+  return true;
 }
