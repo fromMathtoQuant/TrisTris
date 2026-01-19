@@ -1,4 +1,3 @@
-
 :root{
   --bg:#0b1220;
   --card:#111827;
@@ -7,30 +6,75 @@
   --accent-2:#a78bfa;
 }
 
-*{ box-sizing:border-box; }
-html, body { height: 100%; }
+*{ 
+  box-sizing:border-box;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+html, body { 
+  height: 100%;
+  width: 100%;
+  position: fixed;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: pan-x pan-y;
+}
+
 body{
   margin:0;
   background:linear-gradient(180deg,var(--bg),#0f172a 60%);
   color:var(--text);
   font:16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji","Segoe UI Emoji";
-  display:flex;flex-direction:column;
+  display:flex;
+  flex-direction:column;
 }
 
 .app-header{
-  display:flex;align-items:center;justify-content:space-between;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
   padding:1rem clamp(1rem,3vw,2rem);
-  background:#0f172a; position:sticky; top:0; z-index:10;
+  background:#0f172a;
+  position:sticky;
+  top:0;
+  z-index:10;
   border-bottom:1px solid #1f2937;
 }
-.app-header h1{margin:0;font-size:clamp(1.1rem,2.5vw,1.5rem)}
+
+.app-header h1{
+  margin:0;
+  font-size:clamp(1.1rem,2.5vw,1.5rem);
+}
+
 .install-btn{
   background:linear-gradient(90deg,var(--accent),var(--accent-2));
-  color:#0b1220;border:none;border-radius:8px;padding:.6rem .9rem;font-weight:700;cursor:pointer
+  color:#0b1220;
+  border:none;
+  border-radius:8px;
+  padding:.6rem .9rem;
+  font-weight:700;
+  cursor:pointer;
+  touch-action: manipulation;
 }
-.install-btn:focus{outline:2px solid #22d3ee;outline-offset:2px}
 
-.app-shell{flex:1;display:flex;flex-direction:column;gap:1rem;align-items:center;padding:1rem}
+.install-btn:focus{
+  outline:2px solid #22d3ee;
+  outline-offset:2px;
+}
+
+.app-shell{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  gap:1rem;
+  align-items:center;
+  padding:1rem;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
 
 .status-bar{
   width:min(960px,95vw);
@@ -42,15 +86,145 @@ body{
 }
 
 .board-placeholder{
-  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
-  border-radius:16px; padding:1rem; width:min(960px,95vw);
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:16px;
+  padding:1rem;
+  width:min(960px,95vw);
+}
+
+/* ---------------------------------- */
+/*       MENU SCREEN                  */
+/* ---------------------------------- */
+.menu-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  padding: 2rem;
+}
+
+.menu-title {
+  font-size: 3rem;
+  margin: 0;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.menu-description {
+  text-align: center;
+  font-size: 1.1rem;
+  opacity: 0.8;
+  max-width: 400px;
+  margin: 0;
+}
+
+.menu-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  max-width: 300px;
+}
+
+.menu-btn {
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  color: #0b1220;
+  border: none;
+  border-radius: 8px;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform 0.1s;
+}
+
+.menu-btn:active {
+  transform: scale(0.98);
+}
+
+.menu-btn.secondary {
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+}
+
+/* ---------------------------------- */
+/*       AI DIFFICULTY MODAL          */
+/* ---------------------------------- */
+.difficulty-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 2rem;
+}
+
+.difficulty-content {
+  background: var(--card);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 2rem;
+  max-width: 400px;
+  width: 100%;
+}
+
+.difficulty-title {
+  font-size: 1.5rem;
+  margin: 0 0 1.5rem 0;
+  text-align: center;
+}
+
+.difficulty-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.difficulty-btn {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: all 0.2s;
+}
+
+.difficulty-btn:active {
+  transform: scale(0.98);
+}
+
+.difficulty-btn.easy {
+  border-color: #10b981;
+}
+
+.difficulty-btn.medium {
+  border-color: #f59e0b;
+}
+
+.difficulty-btn.hard {
+  border-color: #ef4444;
+}
+
+.difficulty-cancel {
+  margin-top: 1rem;
+  background: transparent;
+  color: var(--text);
+  opacity: 0.6;
 }
 
 /* ---------------------------------- */
 /*       TRISTRIS BOARD STYLE         */
 /* ---------------------------------- */
 
-/* Colori */
 :root {
   --blue-dark: #0b3a57;
   --blue-light: #176c96;
@@ -67,12 +241,13 @@ body{
   aspect-ratio: 1 / 1;
   margin: auto;
   position: relative;
+  touch-action: none;
 }
 
-/* Sfondo scacchiera macro */
 .macro-cell:nth-child(odd) {
   background: var(--blue-dark);
 }
+
 .macro-cell:nth-child(even) {
   background: var(--blue-light);
 }
@@ -83,9 +258,9 @@ body{
   display: flex;
   align-items: stretch;
   justify-content: stretch;
+  touch-action: none;
 }
 
-/* Linee macro verticali */
 .macro-grid::before,
 .macro-grid::after {
   content: "";
@@ -95,18 +270,13 @@ body{
   width: 4px;
   height: 100%;
   background: var(--line);
+  pointer-events: none;
 }
+
 .macro-grid::after {
   left: 66.6666%;
 }
 
-/* Linee macro orizzontali */
-.macro-grid::before,
-.macro-grid::after {
-  transform-origin: center;
-}
-
-/* Aggiungiamo linee orizzontali separate */
 .macro-grid .macro-cell:nth-child(4)::before,
 .macro-grid .macro-cell:nth-child(5)::before,
 .macro-grid .macro-cell:nth-child(6)::before {
@@ -117,6 +287,7 @@ body{
   width: 100%;
   height: 4px;
   background: var(--line);
+  pointer-events: none;
 }
 
 .macro-grid .macro-cell:nth-child(7)::before,
@@ -129,10 +300,11 @@ body{
   width: 100%;
   height: 4px;
   background: var(--line);
+  pointer-events: none;
 }
 
 /* ==================================
-   MICROGRID (interno a ogni cella)
+   MICROGRID
 ================================== */
 
 .micro-grid {
@@ -140,17 +312,17 @@ body{
   grid-template-columns: repeat(3, 1fr);
   flex: 1;
   position: relative;
+  touch-action: none;
 }
 
-/* Sfondo scacchiera nelle micro */
 .micro-cell:nth-child(odd) {
   background: rgba(255, 255, 255, 0.05);
 }
+
 .micro-cell:nth-child(even) {
   background: rgba(255, 255, 255, 0.15);
 }
 
-/* Celle */
 .micro-cell {
   border: none;
   color: white;
@@ -160,9 +332,9 @@ body{
   display: flex;
   align-items: center;
   justify-content: center;
+  touch-action: manipulation;
 }
 
-/* Linee delle microgriglie */
 .micro-grid::before,
 .micro-grid::after {
   content: "";
@@ -173,12 +345,13 @@ body{
   height: 100%;
   background: var(--line);
   opacity: 0.6;
+  pointer-events: none;
 }
+
 .micro-grid::after {
   left: 66.6666%;
 }
 
-/* linee orizzontali micro */
 .micro-grid .micro-cell:nth-child(4)::before,
 .micro-grid .micro-cell:nth-child(5)::before,
 .micro-grid .micro-cell:nth-child(6)::before {
@@ -190,6 +363,7 @@ body{
   height: 2px;
   background: var(--line);
   opacity: 0.6;
+  pointer-events: none;
 }
 
 .micro-grid .micro-cell:nth-child(7)::before,
@@ -203,18 +377,18 @@ body{
   height: 2px;
   background: var(--line);
   opacity: 0.6;
+  pointer-events: none;
 }
 
-/* Highlight micro attive */
 .micro-grid--active {
   box-shadow: 0 0 0 4px yellow inset;
 }
+
 .micro-grid--disabled {
   opacity: .4;
   pointer-events: none;
 }
 
-/* singola cella micro */
 .micro-cell {
   background: #0f172a;
   border: 1px solid #475569;
@@ -229,18 +403,22 @@ body{
   justify-content: center;
   transition: background .15s, transform .05s ease;
 }
-.micro-cell:hover { background: #1e293b; }
-.micro-cell:active { background: #475569; transform: scale(.98); }
 
-.app-footer{padding:1rem; text-align:center; border-top:1px solid #1f2937; background:#0f172a}
-
-@media (prefers-color-scheme: light){
-  :root{--bg:#f6f7fb;--card:#ffffff;--text:#1f2937}
-  body{background:#f3f4f6;color:#111827}
-  .app-header,.app-footer{background:#ffffff}
+.micro-cell:hover {
+  background: #1e293b;
 }
 
+.micro-cell:active {
+  background: #475569;
+  transform: scale(.98);
+}
 
+.app-footer{
+  padding:1rem;
+  text-align:center;
+  border-top:1px solid #1f2937;
+  background:#0f172a;
+}
 
 /* ================================
    MICROGRID VINTA - OVERLAY
@@ -262,7 +440,6 @@ body{
   animation: popIn 0.25s ease-out;
 }
 
-/* X rossa, O blu */
 .micro-winner-overlay.X {
   color: #ff5757;
   text-shadow: 0 0 12px rgba(255,87,87,0.5);
@@ -279,26 +456,22 @@ body{
   100% { transform: scale(1); }
 }
 
-/* Quando la micro è vinta, nascondi le celle interne */
 .micro-grid--won .micro-cell {
   opacity: 0;
   pointer-events: none;
 }
-
 
 /* =============== MICRO FULLSCREEN =============== */
 
 .micro-fullscreen-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.85);
+  background: rgba(0,0,0,0.95);
   display: flex;
   flex-direction: column;
   z-index: 9999;
   padding: 1rem;
-  z-index: 9999;
-  pointer-events: auto;
-
+  touch-action: none;
 }
 
 .micro-fullscreen-header {
@@ -306,19 +479,28 @@ body{
   justify-content: flex-end;
   padding: .5rem;
   position: relative;
-  z-index: 999999; /* sopra tutto */
-  pointer-events: auto;
+  z-index: 10000;
 }
 
 .micro-close-btn {
   font-size: 2rem;
   color: white;
-  background: transparent;
-  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  position: relative;
-  z-index: 999999;
-  pointer-events: auto;
+  touch-action: manipulation;
+  transition: all 0.2s;
+}
+
+.micro-close-btn:active {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(0.95);
 }
 
 .micro-fullscreen-body {
@@ -327,35 +509,48 @@ body{
   place-items: center;
 }
 
-
-
+.fullscreen-micro {
+  width: min(90vw, 90vh);
+  aspect-ratio: 1;
+}
 
 /* ==========================================
    ANIMAZIONE ZOOM-IN / ZOOM-OUT
 ========================================== */
+
+.fade-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0);
+  transition: background 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+  z-index: 9997;
+  pointer-events: none;
+}
+
+.fade-overlay.active {
+  background: rgba(0,0,0,0.95);
+}
 
 .micro-zoom-clone {
   position: fixed;
   z-index: 9998;
   pointer-events: none;
   transform-origin: top left;
-  transition: transform 0.35s cubic-bezier(0.16, 0.8, 0.32, 1);
+  transition: all 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+  will-change: transform;
 }
 
-.micro-zoom-out {
-  transition: transform 0.35s cubic-bezier(0.3, 0.0, 0.2, 1);
+@media (prefers-color-scheme: light){
+  :root{
+    --bg:#f6f7fb;
+    --card:#ffffff;
+    --text:#1f2937;
+  }
+  body{
+    background:#f3f4f6;
+    color:#111827;
+  }
+  .app-header,.app-footer{
+    background:#ffffff;
+  }
 }
-
-.fade-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0);
-  transition: background 0.35s ease;
-  z-index: 9997;
-  pointer-events: none;
-}
-
-.fade-overlay.active {
-  background: rgba(0,0,0,0.85);
-}
-
