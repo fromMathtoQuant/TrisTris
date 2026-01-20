@@ -60,7 +60,6 @@ export function renderStatus(state) {
   } else {
     const r = Math.floor(state.nextForcedCell / 3);
     const c = state.nextForcedCell % 3;
-     
     // Mappature per righe e colonne
     const rowPos = (r === 0) ? "in alto"
                 : (r === 1) ? "al centro"
@@ -170,7 +169,7 @@ function renderDifficultyModal(root) {
 
   const easyBtn = document.createElement("button");
   easyBtn.className = "difficulty-btn easy";
-  easyBtn.innerHTML = "<strong>Facile</strong><br><small>Mosse casuali</small>";
+  easyBtn.innerHTML = "<strong>Facile</strong><br><small>Minimax (Alpha-Beta)</small>";
   easyBtn.dataset.difficulty = "easy";
 
   const mediumBtn = document.createElement("button");
@@ -297,11 +296,16 @@ function renderMacro(state, root) {
   root.innerHTML = "";
   root.className = "board-placeholder";
 
+  // Bottone torna al menu
   const backBtn = document.createElement("button");
   backBtn.textContent = "← Menu";
-  backBtn.className = "install-btn";
+  backBtn.className = "back-menu-btn";
   backBtn.dataset.action = "back-to-menu";
   root.appendChild(backBtn);
+
+  // Container per griglia e loading
+  const gameContainer = document.createElement("div");
+  gameContainer.className = "game-container";
 
   const macro = document.createElement("div");
   macro.className = "macro-grid";
@@ -325,11 +329,16 @@ function renderMacro(state, root) {
     if (isMicroWon(state, idx)) {
       const winner = state.macroBoard[r][c];
       const overlay = document.createElement("div");
-      overlay.className = `micro-winner-overlay ${winner}`;
-      overlay.textContent = winner;
+      overlay.className = `micro-winner-overlay`;
+      
+      const img = document.createElement("img");
+      img.src = winner === 'X' ? 'ICS.png' : 'O.png';
+      img.alt = winner;
+      overlay.appendChild(img);
+      
       macroCell.appendChild(overlay);
       
-      // Aggiungi celle vuote per mantenere layout
+      // Celle vuote per layout
       for (let i = 0; i < 9; i++) {
         const cell = document.createElement("div");
         cell.className = "micro-cell";
@@ -343,7 +352,20 @@ function renderMacro(state, root) {
     macro.appendChild(macroCell);
   }
 
-  root.appendChild(macro);
+  gameContainer.appendChild(macro);
+
+  // AI Loading spinner
+  if (state.gameMode === "ai" && state.turn === 1 && state.ui.aiThinking) {
+    const loadingDiv = document.createElement("div");
+    loadingDiv.className = "ai-loading";
+    loadingDiv.innerHTML = `
+      <div class="spinner"></div>
+      <span>AI sta pensando...</span>
+    `;
+    gameContainer.appendChild(loadingDiv);
+  }
+
+  root.appendChild(gameContainer);
 }
 
 /* ------------------------------
@@ -355,7 +377,20 @@ function renderMicroCells(state, microIndex, container) {
     for (let c = 0; c < 3; c++) {
       const cell = document.createElement("div");
       cell.className = "micro-cell";
-      cell.textContent = board[r][c] ?? "";
+      
+      const symbol = board[r][c];
+      if (symbol === 'X') {
+        const img = document.createElement("img");
+        img.src = "ICS.png";
+        img.alt = "X";
+        cell.appendChild(img);
+      } else if (symbol === 'O') {
+        const img = document.createElement("img");
+        img.src = "O.png";
+        img.alt = "O";
+        cell.appendChild(img);
+      }
+      
       container.appendChild(cell);
     }
   }
@@ -413,7 +448,20 @@ export function renderMicroGrid(state, microIndex) {
       cell.dataset.row = r;
       cell.dataset.col = c;
       cell.dataset.micro = microIndex;
-      cell.textContent = board[r][c] ?? "";
+      
+      const symbol = board[r][c];
+      if (symbol === 'X') {
+        const img = document.createElement("img");
+        img.src = "ICS.png";
+        img.alt = "X";
+        cell.appendChild(img);
+      } else if (symbol === 'O') {
+        const img = document.createElement("img");
+        img.src = "O.png";
+        img.alt = "O";
+        cell.appendChild(img);
+      }
+      
       micro.appendChild(cell);
     }
   }
