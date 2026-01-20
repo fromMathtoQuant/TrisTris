@@ -56,11 +56,30 @@ export function renderStatus(state) {
   }
 
   if (state.nextForcedCell === null) {
-    status.textContent = `Turno: ${player} — scegli una micro`;
+    status.textContent = `Tocca a ${player} — scegli una casella`;
   } else {
     const r = Math.floor(state.nextForcedCell / 3);
     const c = state.nextForcedCell % 3;
-    status.textContent = `Turno: ${player} — devi giocare nella micro (${r+1}, ${c+1})`;
+     
+    // Mappature per righe e colonne
+    const rowPos = (r === 0) ? "in alto"
+                : (r === 1) ? "al centro"
+                :              "in basso";
+   
+    const colPos = (c === 0) ? "a sinistra"
+                : (c === 1) ? "al centro"
+                :              "a destra";
+   
+    // Se entrambe sono "al centro" (r === 1 e c === 1), evitiamo ripetizioni tipo "al centro al centro"
+    const descrizionePos = (r === 1 && c === 1)
+      ? "al centro"
+      : (r === 1)           // solo la r è centro → "al centro a sinistra/destra"
+        ? `al centro ${colPos}`
+        : (c === 1)         // solo la c è centro → "in alto/in basso al centro"
+          ? `${rowPos} al centro`
+          : `${rowPos} ${colPos}`;
+   
+    status.textContent = `Tocca a ${player} — devi giocare nella casella ${descrizionePos}`;
   }
 }
 
