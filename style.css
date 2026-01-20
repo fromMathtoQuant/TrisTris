@@ -42,6 +42,7 @@ body{
   justify-content:center;
   padding:1rem;
   overflow:hidden;
+  position:relative;
 }
 
 .status-bar{
@@ -65,6 +66,28 @@ body{
   flex-direction:column;
   align-items:center;
   gap:1rem;
+  position:relative;
+}
+
+.back-menu-btn {
+  position:absolute;
+  top:1rem;
+  left:1rem;
+  background:linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
+  color:white;
+  border:none;
+  border-radius:10px;
+  padding:0.7rem 1.2rem;
+  font-weight:700;
+  cursor:pointer;
+  touch-action:manipulation;
+  box-shadow:0 4px 12px rgba(6,182,212,0.3);
+  transition:all 0.2s;
+  z-index:100;
+}
+
+.back-menu-btn:active {
+  transform:scale(0.98);
 }
 
 /* ---------------------------------- */
@@ -257,6 +280,14 @@ body{
   --active-border: #fbbf24;
 }
 
+.game-container {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:1rem;
+  width:100%;
+}
+
 .macro-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -291,7 +322,6 @@ body{
   background-color: var(--blue-light);
 }
 
-/* Bordo giallo continuo per micro attiva */
 .macro-cell.micro-grid--active {
   outline: 4px solid var(--active-border);
   outline-offset: -4px;
@@ -325,6 +355,14 @@ body{
   touch-action: manipulation;
   aspect-ratio: 1;
   transition: background 0.15s;
+  position:relative;
+}
+
+.micro-cell img {
+  width:80%;
+  height:80%;
+  object-fit:contain;
+  pointer-events:none;
 }
 
 .micro-cell:hover {
@@ -380,22 +418,17 @@ body{
   justify-content: center;
   font-size: clamp(3rem, 8vw, 6rem);
   font-weight: 900;
-  color: rgba(255,255,255,0.95);
-  text-shadow: 0 0 20px rgba(255,255,255,0.6);
   pointer-events: none;
   z-index: 10;
   animation: popIn 0.3s ease-out;
   border-radius: 4px;
 }
 
-.micro-winner-overlay.X {
-  color: #ff5757;
-  text-shadow: 0 0 20px rgba(255,87,87,0.7);
-}
-
-.micro-winner-overlay.O {
-  color: #5bd3ff;
-  text-shadow: 0 0 20px rgba(91,211,255,0.7);
+.micro-winner-overlay img {
+  width:70%;
+  height:70%;
+  object-fit:contain;
+  filter:drop-shadow(0 0 20px rgba(255,255,255,0.6));
 }
 
 @keyframes popIn {
@@ -508,7 +541,6 @@ body{
   position: fixed;
   z-index: 9998;
   pointer-events: none;
-  transform-origin: center;
   transition: all 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
   will-change: transform, opacity;
   display: grid;
@@ -532,11 +564,43 @@ body{
   aspect-ratio: 1;
 }
 
+.micro-zoom-clone .micro-cell img {
+  width:80%;
+  height:80%;
+  object-fit:contain;
+}
+
 .micro-zoom-clone .micro-cell:nth-child(even) {
   background: var(--blue-light);
 }
 
-/* Loader */
+/* ==========================================
+   AI LOADING SPINNER
+========================================== */
+.ai-loading {
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  color: #0c4a6e;
+  font-weight: 600;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(6,182,212,0.2);
+  border-top-color: #06b6d4;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Loader modal */
 .loader {
   border: 4px solid rgba(6,182,212,0.2);
   border-top: 4px solid #06b6d4;
@@ -545,9 +609,4 @@ body{
   height: 48px;
   animation: spin 1s linear infinite;
   margin: 1rem auto;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
 }
