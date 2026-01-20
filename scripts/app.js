@@ -4,7 +4,17 @@ import { initGameState, resetGame } from "../app/gameState.js";
 import { isMicroPlayable } from "../app/gameRules.js";
 import { playMove } from "../app/engine.js";
 import { getAIMove } from "../app/ai.js";
-import { createOnlineGame, joinOnlineGame, saveGameState, loadGameState, startPolling, stopPolling, finishGame } from "../app/online.js";
+import { 
+  initSupabase, 
+  createGame, 
+  joinGame, 
+  saveGameState, 
+  loadGameState, 
+  subscribeToGame, 
+  unsubscribe,
+  finishGame,
+  checkGameStatus
+} from "../app/supabase.js";
 
 // Previeni zoom e selezione su iOS
 document.addEventListener('gesturestart', (e) => e.preventDefault());
@@ -33,6 +43,9 @@ if (installBtn) {
     deferredPrompt = null;
   });
 }
+
+// Inizializza Supabase
+initSupabase();
 
 // Stato iniziale
 const state = initGameState();
@@ -67,11 +80,6 @@ document.addEventListener("click", async (e) => {
 
   /* ---- BOTTONE ONLINE ---- */
   if (el.dataset.action === "start-online") {
-    // Controlla se storage è disponibile
-    if (typeof window.storage === 'undefined') {
-      alert("La modalità online non è disponibile in questo ambiente.\n\nProva ad usare l'app da claude.ai");
-      return;
-    }
     state.ui.screen = "online";
     renderStatus(state);
     renderBoard(state);
@@ -80,18 +88,19 @@ document.addEventListener("click", async (e) => {
 
   /* ---- CREA PARTITA ONLINE ---- */
   if (el.dataset.action === "create-online") {
-    const result = await createOnlineGame();
+    const result = await createGame();
     if (result.success) {
-      state.onlineGameCode = result.gameCode;
+      state.onlineGameId = result.gameId;
+      state.onlineGameCode = result.code;
       state.onlinePlayerId = result.playerId;
       state.onlinePlayer1Id = result.playerId;
       state.onlineWaiting = true;
       renderStatus(state);
       renderBoard(state);
       
-      waitForOpponent(result.gameCode);
+      waitForOpponent(result.gameId);
     } else {
-      alert(`Errore nella creazione della partita:\n${result.error}\n\nLa modalità online richiede window.storage che potrebbe non essere disponibile.`);
+      alert(`Errore nella creazione della partita:\n${result.error}\n\nAssicurati di aver configurato Supabase correttamente.`);
     }
     return;
   }
@@ -106,31 +115,24 @@ document.addEventListener("click", async (e) => {
       return;
     }
     
-    const result = await joinOnlineGame(code);
+    const result = await joinGame(code);
     if (result.success) {
       resetGame(state, "online");
-      state.onlineGameCode = result.gameCode;
+      state.onlineGameId = result.gameId;
+      state.onlineGameCode = result.code;
       state.onlinePlayerId = result.playerId;
+      state.onlinePlayer1Id = result.player1Id;
       
-      const savedState = await loadGameState(result.gameCode);
-      if (savedState) {
-        Object.assign(state, savedState);
-      }
-      
-      try {
-        const gameResult = await window.storage.get(`game:${result.gameCode}`, true);
-        if (gameResult) {
-          const gameData = JSON.parse(gameResult.value);
-          state.onlinePlayer1Id = gameData.player1;
-        }
-      } catch (e) {
-        console.error("Errore caricamento game data:", e);
+      const gameState = await loadGameState(result.gameId);
+      if (gameState && gameState.state) {
+        Object.assign(state, gameState.state);
+        state.onlinePlayer1Id = gameState.player1Id;
       }
       
       renderStatus(state);
       renderBoard(state);
       
-      startOnlinePolling(result.gameCode);
+      startOnlineSubscription(result.gameId);
     } else {
       alert(result.error || "Errore nell'unione alla partita");
     }
@@ -139,8 +141,8 @@ document.addEventListener("click", async (e) => {
 
   /* ---- ANNULLA ONLINE ---- */
   if (el.dataset.action === "cancel-online") {
-    if (state.onlinePollingId) {
-      stopPolling(state.onlinePollingId);
+    if (state.onlineChannel) {
+      await unsubscribe(state.onlineChannel);
     }
     state.ui.screen = "menu";
     state.onlineWaiting = false;
@@ -171,8 +173,8 @@ document.addEventListener("click", async (e) => {
   if (el.dataset.action === "back-to-menu") {
     const confirm = window.confirm("Sei sicuro di voler tornare al menu? La partita corrente sarà persa.");
     if (confirm) {
-      if (state.onlinePollingId) {
-        stopPolling(state.onlinePollingId);
+      if (state.onlineChannel) {
+        await unsubscribe(state.onlineChannel);
       }
       state.ui.screen = "menu";
       renderStatus(state);
@@ -239,7 +241,7 @@ async function handleMove(micro, row, col) {
     renderBoard(state);
 
     if (state.gameMode === "online") {
-      await saveGameState(state.onlineGameCode, {
+      await saveGameState(state.onlineGameId, {
         macroBoard: state.macroBoard,
         microBoards: state.microBoards,
         turn: state.turn,
@@ -249,7 +251,7 @@ async function handleMove(micro, row, col) {
 
     if (result.gameEnd) {
       if (state.gameMode === "online") {
-        await finishGame(state.onlineGameCode, result.gameEnd.winner);
+        await finishGame(state.onlineGameId, result.gameEnd.winner);
       }
       setTimeout(() => {
         showGameEndDialog(result.gameEnd.winner);
@@ -264,15 +266,18 @@ async function handleMove(micro, row, col) {
 }
 
 async function playAITurn() {
-  await new Promise(resolve => setTimeout(resolve, 800));
-  
-  renderStatus(state);
+  state.ui.aiThinking = true;
   renderBoard(state);
+  
+  await new Promise(resolve => setTimeout(resolve, 300));
   
   const aiMove = await getAIMove(state);
   
+  state.ui.aiThinking = false;
+  
   if (!aiMove) {
     console.error("AI non ha trovato mosse valide");
+    renderBoard(state);
     return;
   }
   
@@ -291,27 +296,20 @@ async function playAITurn() {
 }
 
 // ==========================================
-// ONLINE MULTIPLAYER
+// ONLINE MULTIPLAYER (SUPABASE)
 // ==========================================
 
-async function waitForOpponent(gameCode) {
+async function waitForOpponent(gameId) {
   const checkInterval = setInterval(async () => {
-    try {
-      const result = await window.storage.get(`game:${gameCode}`, true);
-      if (result) {
-        const gameData = JSON.parse(result.value);
-        if (gameData.status === "playing") {
-          clearInterval(checkInterval);
-          resetGame(state, "online");
-          state.onlineWaiting = false;
-          renderStatus(state);
-          renderBoard(state);
-          
-          startOnlinePolling(gameCode);
-        }
-      }
-    } catch (e) {
-      console.error("Errore controllo avversario:", e);
+    const status = await checkGameStatus(gameId);
+    if (status && status.status === "playing") {
+      clearInterval(checkInterval);
+      resetGame(state, "online");
+      state.onlineWaiting = false;
+      renderStatus(state);
+      renderBoard(state);
+      
+      startOnlineSubscription(gameId);
     }
   }, 1000);
   
@@ -327,9 +325,10 @@ async function waitForOpponent(gameCode) {
   }, 300000);
 }
 
-function startOnlinePolling(gameCode) {
-  const pollingId = startPolling(gameCode, state.onlinePlayerId, (newState) => {
-    if (newState) {
+function startOnlineSubscription(gameId) {
+  const channel = subscribeToGame(gameId, (update) => {
+    if (update.current_state) {
+      const newState = update.current_state;
       state.macroBoard = newState.macroBoard;
       state.microBoards = newState.microBoards;
       state.turn = newState.turn;
@@ -338,9 +337,15 @@ function startOnlinePolling(gameCode) {
       renderStatus(state);
       renderBoard(state);
     }
+    
+    if (update.status === "finished") {
+      setTimeout(() => {
+        showGameEndDialog(update.winner);
+      }, 500);
+    }
   });
   
-  state.onlinePollingId = pollingId;
+  state.onlineChannel = channel;
 }
 
 // ==========================================
@@ -370,8 +375,8 @@ function showGameEndDialog(winner) {
   
   alert(message);
   
-  if (state.onlinePollingId) {
-    stopPolling(state.onlinePollingId);
+  if (state.onlineChannel) {
+    unsubscribe(state.onlineChannel);
   }
   
   state.ui.screen = "menu";
@@ -399,34 +404,56 @@ function animateMicroZoomIn(macroCellEl, microIndex) {
   const clone = document.createElement("div");
   clone.className = "micro-zoom-clone";
   
-  // Copia le celle
+  // Copia le celle con immagini
   const cells = macroCellEl.querySelectorAll(".micro-cell");
   cells.forEach(cell => {
-    const cloneCell = cell.cloneNode(true);
+    const cloneCell = document.createElement("div");
+    cloneCell.className = "micro-cell";
+    
+    const img = cell.querySelector("img");
+    if (img) {
+      const cloneImg = img.cloneNode(true);
+      cloneCell.appendChild(cloneImg);
+    }
+    
     clone.appendChild(cloneCell);
   });
   
   document.body.appendChild(clone);
 
   const rect = macroCellEl.getBoundingClientRect();
+  
+  // Posiziona il clone
   clone.style.left = rect.left + "px";
   clone.style.top = rect.top + "px";
   clone.style.width = rect.width + "px";
   clone.style.height = rect.height + "px";
 
-  // Force reflow
   requestAnimationFrame(() => {
+    // Calcola dimensioni target
     const targetSize = Math.min(window.innerWidth * 0.9, window.innerHeight * 0.85);
-    const centerX = (window.innerWidth - targetSize) / 2;
-    const centerY = (window.innerHeight - targetSize) / 2;
-
+    
+    // Calcola centro dello schermo
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
+    
+    // Calcola posizione finale (centrato)
+    const finalLeft = centerX - targetSize / 2;
+    const finalTop = centerY - targetSize / 2;
+    
+    // Calcola scale e translate dal centro del clone
+    const rectCenterX = rect.left + rect.width / 2;
+    const rectCenterY = rect.top + rect.height / 2;
+    
     const scale = targetSize / rect.width;
-    const translateX = centerX - rect.left;
-    const translateY = centerY - rect.top;
+    const translateX = (finalLeft + targetSize / 2) - rectCenterX;
+    const translateY = (finalTop + targetSize / 2) - rectCenterY;
 
+    // Imposta transform-origin al centro
+    clone.style.transformOrigin = "center center";
+    
     fade.classList.add("active");
     clone.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
-    clone.style.opacity = "1";
 
     setTimeout(() => {
       state.ui.viewingMicro = microIndex;
@@ -469,6 +496,7 @@ function animateMicroZoomOut(targetMicroIndex, onComplete) {
 
     const clone = fullscreen.cloneNode(true);
     clone.className = "micro-zoom-clone";
+    clone.style.transformOrigin = "center center";
     clone.style.left = rectStart.left + "px";
     clone.style.top = rectStart.top + "px";
     clone.style.width = rectStart.width + "px";
@@ -477,9 +505,15 @@ function animateMicroZoomOut(targetMicroIndex, onComplete) {
     document.body.appendChild(clone);
 
     requestAnimationFrame(() => {
+      const rectStartCenterX = rectStart.left + rectStart.width / 2;
+      const rectStartCenterY = rectStart.top + rectStart.height / 2;
+      
+      const rectEndCenterX = rectEnd.left + rectEnd.width / 2;
+      const rectEndCenterY = rectEnd.top + rectEnd.height / 2;
+      
       const scale = rectEnd.width / rectStart.width;
-      const translateX = rectEnd.left - rectStart.left;
-      const translateY = rectEnd.top - rectStart.top;
+      const translateX = rectEndCenterX - rectStartCenterX;
+      const translateY = rectEndCenterY - rectStartCenterY;
 
       clone.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
       fade.classList.remove("active");
