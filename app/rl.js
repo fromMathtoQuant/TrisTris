@@ -18,10 +18,12 @@ class RLAgent {
     try {
       // Prova a caricare modello da IndexedDB
       this.model = await tf.loadLayersModel('indexeddb://tristris-rl-model');
-      console.log("✅ Modello RL caricato da storage");
+      // console.log("✅ Modello RL caricato da storage");
+      alert("✅ Modello RL caricato da storage");
       this.initialized = true;
     } catch (e) {
-      console.warn("⚠️  Modello RL non trovato - usando fallback euristico");
+      // console.warn("⚠️  Modello RL non trovato - usando fallback euristico");
+      alert("⚠️  Modello RL non trovato - usando fallback euristico");
       console.warn("Allena il modello con il training tool separato");
       this.initialized = false;
     }
