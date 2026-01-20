@@ -1,14 +1,14 @@
 // app/mcts.js
-// Monte Carlo Tree Search per difficoltà difficile
+// Monte Carlo Tree Search con budget di tempo per difficoltà difficile
 
 import { isMicroPlayable, isCellEmpty, checkWin, checkGameEnd } from "./gameRules.js";
 import { playMove } from "./engine.js";
 
 class MCTSNode {
   constructor(state, parent = null, move = null) {
-    this.state = JSON.parse(JSON.stringify(state)); // Deep copy
+    this.state = JSON.parse(JSON.stringify(state));
     this.parent = parent;
-    this.move = move; // { micro, row, col }
+    this.move = move;
     this.children = [];
     this.wins = 0;
     this.visits = 0;
@@ -75,7 +75,6 @@ class MCTSNode {
     const move = this.untriedMoves.pop();
     const newState = JSON.parse(JSON.stringify(this.state));
     
-    // Applica la mossa
     playMove(newState, move.micro, move.row, move.col);
     
     const childNode = new MCTSNode(newState, this, move);
@@ -85,27 +84,22 @@ class MCTSNode {
   }
 }
 
-/**
- * Simula una partita casuale fino alla fine
- */
 function simulate(state) {
   const simState = JSON.parse(JSON.stringify(state));
   
   let depth = 0;
-  const maxDepth = 100; // Previeni loop infiniti
+  const maxDepth = 100;
   
   while (depth < maxDepth) {
     const result = checkGameEnd(simState);
     if (result.finished) {
-      // Restituisci 1 se O vince, 0 se X vince, 0.5 per pareggio
       if (result.winner === 'O') return 1;
       if (result.winner === 'X') return 0;
       return 0.5;
     }
     
-    // Mossa casuale
     const moves = getValidMoves(simState);
-    if (moves.length === 0) return 0.5; // Pareggio
+    if (moves.length === 0) return 0.5;
     
     const randomMove = moves[Math.floor(Math.random() * moves.length)];
     playMove(simState, randomMove.micro, randomMove.row, randomMove.col);
@@ -113,7 +107,7 @@ function simulate(state) {
     depth++;
   }
   
-  return 0.5; // Timeout -> pareggio
+  return 0.5;
 }
 
 function getValidMoves(state) {
@@ -148,29 +142,27 @@ function getValidMoves(state) {
   return moves;
 }
 
-/**
- * Backpropagation
- */
 function backpropagate(node, result) {
   let current = node;
   
   while (current !== null) {
     current.visits++;
-    // Se il nodo rappresenta una mossa di O, aggiungi il risultato
-    // Altrimenti sottrai (perché X vuole minimizzare)
-    const isOMove = current.state.turn === 0; // Dopo la mossa, il turno cambia
+    const isOMove = current.state.turn === 0;
     current.wins += isOMove ? result : (1 - result);
     current = current.parent;
   }
 }
 
 /**
- * MCTS principale
+ * MCTS con limite di tempo (6 secondi per hard)
  */
-export async function getMCTSMove(state, iterations = 500) {
+export async function getMCTSMove(state, maxTimeMs = 6000) {
   const rootNode = new MCTSNode(state);
+  const startTime = Date.now();
+  let iterations = 0;
   
-  for (let i = 0; i < iterations; i++) {
+  // Esegui MCTS fino al timeout
+  while (Date.now() - startTime < maxTimeMs) {
     let node = rootNode;
     
     // Selection
@@ -188,9 +180,18 @@ export async function getMCTSMove(state, iterations = 500) {
     
     // Backpropagation
     backpropagate(node, result);
+    
+    iterations++;
+    
+    // Ogni 100 iterazioni controlla il tempo
+    if (iterations % 100 === 0) {
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
   }
   
-  // Scegli la mossa con più visite (più robusta)
+  console.log(`MCTS completato: ${iterations} iterazioni in ${Date.now() - startTime}ms`);
+  
+  // Scegli la mossa con più visite
   if (rootNode.children.length === 0) return null;
   
   const bestChild = rootNode.children.reduce((best, child) => {
