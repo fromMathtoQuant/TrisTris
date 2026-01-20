@@ -8,10 +8,11 @@ export function renderStatus(state) {
   const status = document.getElementById("status-bar");
   
   if (state.ui.screen === "menu" || state.ui.screen === "difficulty" || state.ui.screen === "online") {
-    status.textContent = "Benvenuto in TrisTris!";
+    status.style.display = "none";
     return;
   }
 
+  status.style.display = "block";
   const player = state.players[state.turn];
 
   if (state.ui.viewingMicro !== null) {
@@ -96,15 +97,11 @@ export function renderBoard(state) {
 -------------------------------- */
 function renderMenu(root) {
   root.innerHTML = "";
-  root.className = "board-placeholder menu-screen";
+  root.className = "menu-screen";
 
-  const title = document.createElement("h2");
+  const title = document.createElement("h1");
   title.className = "menu-title";
   title.textContent = "TrisTris";
-
-  const description = document.createElement("p");
-  description.className = "menu-description";
-  description.textContent = "Il gioco del tris elevato al quadrato!";
 
   const buttonsContainer = document.createElement("div");
   buttonsContainer.className = "menu-buttons";
@@ -129,7 +126,6 @@ function renderMenu(root) {
   buttonsContainer.appendChild(onlineBtn);
 
   root.appendChild(title);
-  root.appendChild(description);
   root.appendChild(buttonsContainer);
 }
 
@@ -204,7 +200,6 @@ function renderOnlineModal(root, state) {
   const buttonsContainer = document.createElement("div");
   buttonsContainer.className = "online-buttons";
 
-  // Se stiamo aspettando un avversario
   if (state.onlineWaiting) {
     const info = document.createElement("div");
     info.className = "online-info";
@@ -227,7 +222,6 @@ function renderOnlineModal(root, state) {
     content.appendChild(loader);
     content.appendChild(cancelBtn);
   } else {
-    // Scelta iniziale
     const createBtn = document.createElement("button");
     createBtn.className = "online-btn";
     createBtn.textContent = "Crea Partita";
@@ -241,7 +235,7 @@ function renderOnlineModal(root, state) {
     joinLabel.style.display = "block";
     joinLabel.style.marginBottom = "0.5rem";
     joinLabel.style.fontSize = "0.9rem";
-    joinLabel.style.color = "#6b7280";
+    joinLabel.style.color = "#64748b";
 
     const joinInput = document.createElement("input");
     joinInput.type = "text";
@@ -285,10 +279,9 @@ function renderMacro(state, root) {
   root.className = "board-placeholder";
 
   const backBtn = document.createElement("button");
-  backBtn.textContent = "← Torna al Menu";
+  backBtn.textContent = "← Menu";
   backBtn.className = "install-btn";
   backBtn.dataset.action = "back-to-menu";
-  backBtn.style.cssText = "margin-bottom:1rem;align-self:flex-start";
   root.appendChild(backBtn);
 
   const macro = document.createElement("div");
@@ -316,8 +309,16 @@ function renderMacro(state, root) {
       overlay.className = `micro-winner-overlay ${winner}`;
       overlay.textContent = winner;
       macroCell.appendChild(overlay);
+      
+      // Aggiungi celle vuote per mantenere layout
+      for (let i = 0; i < 9; i++) {
+        const cell = document.createElement("div");
+        cell.className = "micro-cell";
+        cell.style.opacity = "0";
+        macroCell.appendChild(cell);
+      }
     } else {
-      macroCell.appendChild(renderMicroPreview(state, idx));
+      renderMicroCells(state, idx, macroCell);
     }
 
     macro.appendChild(macroCell);
@@ -327,11 +328,29 @@ function renderMacro(state, root) {
 }
 
 /* ------------------------------
+   MICRO CELLS (in macro)
+-------------------------------- */
+function renderMicroCells(state, microIndex, container) {
+  const board = state.microBoards[microIndex];
+  for (let r = 0; r < 3; r++) {
+    for (let c = 0; c < 3; c++) {
+      const cell = document.createElement("div");
+      cell.className = "micro-cell";
+      cell.textContent = board[r][c] ?? "";
+      container.appendChild(cell);
+    }
+  }
+}
+
+/* ------------------------------
    MICRO FULLSCREEN
 -------------------------------- */
 function renderMicroFullscreen(state, microIndex, root) {
   root.innerHTML = "";
   root.className = "board-placeholder";
+  root.style.background = "transparent";
+  root.style.border = "none";
+  root.style.padding = "0";
 
   const overlay = document.createElement("div");
   overlay.className = "micro-fullscreen-overlay";
@@ -360,31 +379,12 @@ function renderMicroFullscreen(state, microIndex, root) {
 }
 
 /* ------------------------------
-   MICRO PREVIEW (in macro)
--------------------------------- */
-function renderMicroPreview(state, microIndex) {
-  const preview = document.createElement("div");
-  preview.className = "micro-grid micro-preview";
-
-  const board = state.microBoards[microIndex];
-  for (let r = 0; r < 3; r++) {
-    for (let c = 0; c < 3; c++) {
-      const cell = document.createElement("div");
-      cell.className = "micro-cell";
-      cell.textContent = board[r][c] ?? "";
-      preview.appendChild(cell);
-    }
-  }
-  return preview;
-}
-
-/* ------------------------------
    MICRO GRID FULL VERSION
 -------------------------------- */
 export function renderMicroGrid(state, microIndex) {
   const board = state.microBoards[microIndex];
   const micro = document.createElement("div");
-  micro.className = "micro-grid";
+  micro.className = "fullscreen-micro";
   micro.dataset.index = microIndex;
 
   for (let r = 0; r < 3; r++) {
@@ -394,9 +394,7 @@ export function renderMicroGrid(state, microIndex) {
       cell.dataset.row = r;
       cell.dataset.col = c;
       cell.dataset.micro = microIndex;
-
       cell.textContent = board[r][c] ?? "";
-
       micro.appendChild(cell);
     }
   }
