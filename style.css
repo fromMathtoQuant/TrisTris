@@ -5,6 +5,8 @@
   --accent:#22d3ee;
   --accent-2:#0ea5e9;
   --accent-3:#06b6d4;
+  --active-x: #ef4444;
+  --active-o: #fbbf24;
 }
 
 *{ 
@@ -70,9 +72,6 @@ body{
 }
 
 .back-menu-btn {
-  position:absolute;
-  margin-bottom: 0.25rem;      /* spazio sopra la griglia */
-  align-self: flex-start;   /* opzionale: lo allinea a sinistra */
   background:linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
   color:white;
   border:none;
@@ -83,7 +82,8 @@ body{
   touch-action:manipulation;
   box-shadow:0 4px 12px rgba(6,182,212,0.3);
   transition:all 0.2s;
-  z-index:100;
+  margin-bottom: 1rem;
+  align-self: flex-start;
 }
 
 .back-menu-btn:active {
@@ -259,6 +259,7 @@ body{
   text-align: center;
   font-size: 0.95rem;
   color: #0c4a6e;
+  position: relative;
 }
 
 .online-code {
@@ -269,6 +270,35 @@ body{
   margin: 0.5rem 0;
 }
 
+.copy-code-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: rgba(6,182,212,0.2);
+  border: 1px solid rgba(6,182,212,0.4);
+  border-radius: 6px;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #0c4a6e;
+  font-weight: 600;
+}
+
+.copy-code-btn:hover {
+  background: rgba(6,182,212,0.3);
+}
+
+.copy-code-btn:active {
+  transform: scale(0.95);
+}
+
+.copy-code-btn.copied {
+  background: rgba(16,185,129,0.3);
+  border-color: #10b981;
+  color: #065f46;
+}
+
 /* ---------------------------------- */
 /*       BOARD LAYOUT                 */
 /* ---------------------------------- */
@@ -277,7 +307,6 @@ body{
   --blue-dark: #0b3a57;
   --blue-light: #176c96;
   --line: #ffffff;
-  --active-border: #fbbf24;
 }
 
 .game-container {
@@ -322,8 +351,15 @@ body{
   background-color: var(--blue-light);
 }
 
-.macro-cell.micro-grid--active {
-  outline: 4px solid var(--active-border);
+/* Bordo rosso per X (turn 0), giallo per O (turn 1) */
+.macro-cell.micro-grid--active-x {
+  outline: 4px solid var(--active-x);
+  outline-offset: -4px;
+  z-index: 2;
+}
+
+.macro-cell.micro-grid--active-o {
+  outline: 4px solid var(--active-o);
   outline-offset: -4px;
   z-index: 2;
 }
@@ -447,7 +483,7 @@ body{
 .micro-fullscreen-overlay {
   position: fixed;
   inset: 0;
-  background: #0b1220;
+  background: rgba(11, 18, 32, 0.98);
   display: flex;
   flex-direction: column;
   z-index: 9999;
@@ -493,6 +529,7 @@ body{
   align-items: center;
   justify-content: center;
   padding: 1rem;
+  padding-bottom: 0;
 }
 
 .fullscreen-micro {
@@ -534,7 +571,7 @@ body{
 }
 
 .fade-overlay.active {
-  background: #0b1220;
+  background: rgba(11, 18, 32, 0.98);
 }
 
 .micro-zoom-clone {
