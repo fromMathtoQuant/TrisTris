@@ -56,29 +56,11 @@ export function renderStatus(state) {
   }
 
   if (state.nextForcedCell === null) {
-    status.textContent = `Tocca a ${player} — scegli una casella`;
+    status.textContent = `Turno: ${player} — scegli una micro`;
   } else {
     const r = Math.floor(state.nextForcedCell / 3);
     const c = state.nextForcedCell % 3;
-    // Mappature per righe e colonne
-    const rowPos = (r === 0) ? "in alto"
-                : (r === 1) ? "al centro"
-                :              "in basso";
-   
-    const colPos = (c === 0) ? "a sinistra"
-                : (c === 1) ? "al centro"
-                :              "a destra";
-   
-    // Se entrambe sono "al centro" (r === 1 e c === 1), evitiamo ripetizioni tipo "al centro al centro"
-    const descrizionePos = (r === 1 && c === 1)
-      ? "al centro"
-      : (r === 1)           // solo la r è centro → "al centro a sinistra/destra"
-        ? `al centro ${colPos}`
-        : (c === 1)         // solo la c è centro → "in alto/in basso al centro"
-          ? `${rowPos} al centro`
-          : `${rowPos} ${colPos}`;
-   
-    status.textContent = `Tocca a ${player} — devi giocare nella casella ${descrizionePos}`;
+    status.textContent = `Turno: ${player} — devi giocare nella micro (${r+1}, ${c+1})`;
   }
 }
 
@@ -169,17 +151,17 @@ function renderDifficultyModal(root) {
 
   const easyBtn = document.createElement("button");
   easyBtn.className = "difficulty-btn easy";
-  easyBtn.innerHTML = "<strong>Facile</strong><br><small>Minimax (Alpha-Beta)</small>";
+  easyBtn.innerHTML = "<strong>Facile</strong><br><small>Minimax (≤1s)</small>";
   easyBtn.dataset.difficulty = "easy";
 
   const mediumBtn = document.createElement("button");
   mediumBtn.className = "difficulty-btn medium";
-  mediumBtn.innerHTML = "<strong>Medio</strong><br><small>Reinforcement Learning</small>";
+  mediumBtn.innerHTML = "<strong>Medio</strong><br><small>RL Neural Net (≤3s)</small>";
   mediumBtn.dataset.difficulty = "medium";
 
   const hardBtn = document.createElement("button");
   hardBtn.className = "difficulty-btn hard";
-  hardBtn.innerHTML = "<strong>Difficile</strong><br><small>Monte Carlo Tree Search</small>";
+  hardBtn.innerHTML = "<strong>Difficile</strong><br><small>MCTS (≤6s)</small>";
   hardBtn.dataset.difficulty = "hard";
 
   const cancelBtn = document.createElement("button");
@@ -221,11 +203,18 @@ function renderOnlineModal(root, state) {
   if (state.onlineWaiting) {
     const info = document.createElement("div");
     info.className = "online-info";
+    
+    const copyBtn = document.createElement("button");
+    copyBtn.className = "copy-code-btn";
+    copyBtn.textContent = "Copia";
+    copyBtn.dataset.action = "copy-code";
+    
     info.innerHTML = `
-      <div>Condividi questo codice con il tuo avversario:</div>
+      <div>Condividi questo codice:</div>
       <div class="online-code">${state.onlineGameCode}</div>
       <div style="margin-top: 1rem;">In attesa che si unisca...</div>
     `;
+    info.appendChild(copyBtn);
     
     const loader = document.createElement("div");
     loader.className = "loader";
@@ -311,6 +300,7 @@ function renderMacro(state, root) {
   macro.className = "macro-grid";
 
   const active = getActiveMicroSet(state);
+  const isXTurn = state.turn === 0;
 
   for (let idx = 0; idx < 9; idx++) {
     const macroCell = document.createElement("div");
@@ -318,7 +308,8 @@ function renderMacro(state, root) {
     macroCell.dataset.micro = idx;
 
     if (active.has(idx)) {
-      macroCell.classList.add("micro-grid--active");
+      // Bordo rosso per X, giallo per O
+      macroCell.classList.add(isXTurn ? "micro-grid--active-x" : "micro-grid--active-o");
     } else {
       macroCell.classList.add("micro-grid--disabled");
     }
