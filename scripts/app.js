@@ -16,6 +16,13 @@ import {
   checkGameStatus
 } from "../app/supabase.js";
 
+// Timeout per AI (millisecondi)
+const AI_TIMEOUTS = {
+  easy: 1000,    // 1 secondo
+  medium: 3000,  // 3 secondi
+  hard: 6000     // 6 secondi
+};
+
 // Previeni zoom e selezione su iOS
 document.addEventListener('gesturestart', (e) => e.preventDefault());
 document.addEventListener('gesturechange', (e) => e.preventDefault());
@@ -61,6 +68,23 @@ renderBoard(state);
 document.addEventListener("click", async (e) => {
   const el = e.target;
   if (!(el instanceof HTMLElement)) return;
+
+  /* ---- COPIA CODICE ---- */
+  if (el.dataset.action === "copy-code") {
+    try {
+      await navigator.clipboard.writeText(state.onlineGameCode);
+      el.textContent = "Copiato!";
+      el.classList.add("copied");
+      setTimeout(() => {
+        el.textContent = "Copia";
+        el.classList.remove("copied");
+      }, 2000);
+    } catch (err) {
+      console.error("Errore copia:", err);
+      alert("Impossibile copiare. Codice: " + state.onlineGameCode);
+    }
+    return;
+  }
 
   /* ---- BOTTONE PVP ---- */
   if (el.dataset.action === "start-pvp") {
@@ -269,30 +293,76 @@ async function playAITurn() {
   state.ui.aiThinking = true;
   renderBoard(state);
   
-  await new Promise(resolve => setTimeout(resolve, 300));
+  const timeout = AI_TIMEOUTS[state.aiDifficulty] || 3000;
   
-  const aiMove = await getAIMove(state);
-  
-  state.ui.aiThinking = false;
-  
-  if (!aiMove) {
-    console.error("AI non ha trovato mosse valide");
-    renderBoard(state);
-    return;
-  }
-  
-  const result = playMove(state, aiMove.micro, aiMove.row, aiMove.col);
-  
-  if (result.moved) {
-    renderStatus(state);
-    renderBoard(state);
+  try {
+    // Crea promise con timeout
+    const aiMovePromise = getAIMove(state);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout')), timeout)
+    );
     
-    if (result.gameEnd) {
-      setTimeout(() => {
-        showGameEndDialog(result.gameEnd.winner);
-      }, 500);
+    // Race tra AI e timeout
+    const aiMove = await Promise.race([aiMovePromise, timeoutPromise]);
+    
+    state.ui.aiThinking = false;
+    
+    if (!aiMove) {
+      console.error("AI non ha trovato mosse valide");
+      renderBoard(state);
+      return;
+    }
+    
+    const result = playMove(state, aiMove.micro, aiMove.row, aiMove.col);
+    
+    if (result.moved) {
+      renderStatus(state);
+      renderBoard(state);
+      
+      if (result.gameEnd) {
+        setTimeout(() => {
+          showGameEndDialog(result.gameEnd.winner);
+        }, 500);
+      }
+    }
+  } catch (error) {
+    console.error("Errore AI o timeout:", error);
+    state.ui.aiThinking = false;
+    
+    // Fallback: mossa casuale
+    const moves = getAllValidMoves(state);
+    if (moves.length > 0) {
+      const randomMove = moves[Math.floor(Math.random() * moves.length)];
+      const result = playMove(state, randomMove.micro, randomMove.row, randomMove.col);
+      
+      if (result.moved) {
+        renderStatus(state);
+        renderBoard(state);
+        
+        if (result.gameEnd) {
+          setTimeout(() => {
+            showGameEndDialog(result.gameEnd.winner);
+          }, 500);
+        }
+      }
     }
   }
+}
+
+function getAllValidMoves(state) {
+  const moves = [];
+  for (let micro = 0; micro < 9; micro++) {
+    if (!isMicroPlayable(state, micro)) continue;
+    const board = state.microBoards[micro];
+    for (let r = 0; r < 3; r++) {
+      for (let c = 0; c < 3; c++) {
+        if (board[r][c] === null) {
+          moves.push({ micro, row: r, col: c });
+        }
+      }
+    }
+  }
+  return moves;
 }
 
 // ==========================================
@@ -400,11 +470,9 @@ function animateMicroZoomIn(macroCellEl, microIndex) {
   fade.className = "fade-overlay";
   document.body.appendChild(fade);
 
-  // Crea clone della micro griglia
   const clone = document.createElement("div");
   clone.className = "micro-zoom-clone";
   
-  // Copia le celle con immagini
   const cells = macroCellEl.querySelectorAll(".micro-cell");
   cells.forEach(cell => {
     const cloneCell = document.createElement("div");
@@ -423,25 +491,20 @@ function animateMicroZoomIn(macroCellEl, microIndex) {
 
   const rect = macroCellEl.getBoundingClientRect();
   
-  // Posiziona il clone
   clone.style.left = rect.left + "px";
   clone.style.top = rect.top + "px";
   clone.style.width = rect.width + "px";
   clone.style.height = rect.height + "px";
 
   requestAnimationFrame(() => {
-    // Calcola dimensioni target
     const targetSize = Math.min(window.innerWidth * 0.9, window.innerHeight * 0.85);
     
-    // Calcola centro dello schermo
     const centerX = window.innerWidth / 2;
     const centerY = window.innerHeight / 2;
     
-    // Calcola posizione finale (centrato)
     const finalLeft = centerX - targetSize / 2;
     const finalTop = centerY - targetSize / 2;
     
-    // Calcola scale e translate dal centro del clone
     const rectCenterX = rect.left + rect.width / 2;
     const rectCenterY = rect.top + rect.height / 2;
     
@@ -449,7 +512,6 @@ function animateMicroZoomIn(macroCellEl, microIndex) {
     const translateX = (finalLeft + targetSize / 2) - rectCenterX;
     const translateY = (finalTop + targetSize / 2) - rectCenterY;
 
-    // Imposta transform-origin al centro
     clone.style.transformOrigin = "center center";
     
     fade.classList.add("active");
