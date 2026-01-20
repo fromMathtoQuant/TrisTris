@@ -1,5 +1,5 @@
 // app/ai.js
-import { isMicroPlayable, isCellEmpty } from "./gameRules.js";
+import { getMinimaxMove } from "./minimax.js";
 import { getRLMove } from "./rl.js";
 import { getMCTSMove } from "./mcts.js";
 
@@ -11,63 +11,12 @@ export async function getAIMove(state) {
   
   switch (difficulty) {
     case "easy":
-      return getRandomMove(state);
+      return getMinimaxMove(state, 3); // Minimax profondità 3
     case "medium":
       return await getRLMove(state);
     case "hard":
-      return await getMCTSMove(state, 1000); // 1000 iterazioni MCTS
+      return await getMCTSMove(state, 1000);
     default:
-      return getRandomMove(state);
+      return getMinimaxMove(state, 3);
   }
-}
-
-/**
- * Mossa casuale - per difficoltà facile
- */
-function getRandomMove(state) {
-  const availableMoves = getAllAvailableMoves(state);
-  
-  if (availableMoves.length === 0) {
-    return null;
-  }
-  
-  const randomIndex = Math.floor(Math.random() * availableMoves.length);
-  return availableMoves[randomIndex];
-}
-
-/**
- * Ottiene tutte le mosse disponibili
- */
-function getAllAvailableMoves(state) {
-  const moves = [];
-  const forced = state.nextForcedCell;
-  
-  // Se c'è una micro obbligata
-  if (forced !== null && isMicroPlayable(state, forced)) {
-    const board = state.microBoards[forced];
-    for (let r = 0; r < 3; r++) {
-      for (let c = 0; c < 3; c++) {
-        if (isCellEmpty(state, forced, r, c)) {
-          moves.push({ micro: forced, row: r, col: c });
-        }
-      }
-    }
-    return moves;
-  }
-  
-  // Altrimenti tutte le micro giocabili
-  for (let microIndex = 0; microIndex < 9; microIndex++) {
-    if (!isMicroPlayable(state, microIndex)) continue;
-    
-    const board = state.microBoards[microIndex];
-    for (let r = 0; r < 3; r++) {
-      for (let c = 0; c < 3; c++) {
-        if (isCellEmpty(state, microIndex, r, c)) {
-          moves.push({ micro: microIndex, row: r, col: c });
-        }
-      }
-    }
-  }
-  
-  return moves;
 }
