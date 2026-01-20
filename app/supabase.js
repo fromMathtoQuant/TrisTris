@@ -2,8 +2,8 @@
 // Integrazione Supabase per modalità online
 
 // IMPORTANTE: Inserisci qui le tue credenziali Supabase
-const SUPABASE_URL = 'YOUR_SUPABASE_URL'; // es: https://xxxxx.supabase.co
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+const SUPABASE_URL = 'https://oklzmbxbjbhmewgdiazf.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rbHptYnhiamJobWV3Z2RpYXpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg4ODgwMjksImV4cCI6MjA4NDQ2NDAyOX0.EP3EEzOai0RS5u_Wrc0DjqIu79LIVwgy8F3AN9WC_8k';
 
 let supabase = null;
 
