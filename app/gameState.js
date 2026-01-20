@@ -10,15 +10,17 @@ export function initGameState() {
     nextForcedCell: null,
     gameMode: null, // "pvp" | "ai" | "online"
     aiDifficulty: null, // "easy" | "medium" | "hard"
-    // Online properties
+    // Online properties (Supabase)
+    onlineGameId: null,
     onlineGameCode: null,
     onlinePlayerId: null,
     onlinePlayer1Id: null,
     onlineWaiting: false,
-    onlinePollingId: null,
+    onlineChannel: null,
     ui: {
       viewingMicro: null,
-      screen: "menu" // "menu" | "difficulty" | "online" | "game"
+      screen: "menu", // "menu" | "difficulty" | "online" | "game"
+      aiThinking: false
     }
   };
 }
@@ -32,6 +34,7 @@ export function resetGame(state, mode = "pvp", difficulty = null) {
   state.aiDifficulty = difficulty;
   state.ui.viewingMicro = null;
   state.ui.screen = "game";
+  state.ui.aiThinking = false;
 }
 
 function createEmptyMatrix(size) {
