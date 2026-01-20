@@ -1,26 +1,25 @@
 // app/minimax.js
-// Minimax con Alpha-Beta Pruning per difficoltà facile
+// Minimax con Alpha-Beta Pruning e limite di tempo
 
 import { isMicroPlayable, isCellEmpty, checkWin, checkGameEnd } from "./gameRules.js";
 import { playMove } from "./engine.js";
 
-const MAX_DEPTH = 3; // Profondità massima di ricerca
+const MAX_DEPTH = 3;
+let startTime = 0;
+let timeLimit = 1000;
 
-/**
- * Valuta lo stato della board
- */
 function evaluateBoard(state) {
   const gameEnd = checkGameEnd(state);
   
   if (gameEnd.finished) {
-    if (gameEnd.winner === 'O') return 1000; // AI vince
-    if (gameEnd.winner === 'X') return -1000; // Giocatore vince
-    return 0; // Pareggio
+    if (gameEnd.winner === 'O') return 1000;
+    if (gameEnd.winner === 'X') return -1000;
+    return 0;
   }
   
   let score = 0;
   
-  // Valuta macroboard
+  // Macroboard
   for (let r = 0; r < 3; r++) {
     for (let c = 0; c < 3; c++) {
       const cell = state.macroBoard[r][c];
@@ -29,7 +28,7 @@ function evaluateBoard(state) {
     }
   }
   
-  // Valuta microboards
+  // Microboards
   for (let micro = 0; micro < 9; micro++) {
     const board = state.microBoards[micro];
     
@@ -44,7 +43,7 @@ function evaluateBoard(state) {
       else if (board[r][c] === 'X') score -= 2;
     }
     
-    // Conta celle per O e X
+    // Conta celle
     let oCount = 0, xCount = 0;
     for (let r = 0; r < 3; r++) {
       for (let c = 0; c < 3; c++) {
@@ -53,16 +52,12 @@ function evaluateBoard(state) {
       }
     }
     
-    // Preferisci micro con più controllo
     score += oCount - xCount;
   }
   
   return score;
 }
 
-/**
- * Ottiene tutte le mosse valide
- */
 function getValidMoves(state) {
   const moves = [];
   const forced = state.nextForcedCell;
@@ -95,13 +90,14 @@ function getValidMoves(state) {
   return moves;
 }
 
-/**
- * Minimax con Alpha-Beta Pruning
- */
 function minimax(state, depth, alpha, beta, isMaximizing) {
+  // Timeout check
+  if (Date.now() - startTime > timeLimit) {
+    return evaluateBoard(state);
+  }
+  
   const gameEnd = checkGameEnd(state);
   
-  // Condizioni di terminazione
   if (depth === 0 || gameEnd.finished) {
     return evaluateBoard(state);
   }
@@ -113,7 +109,6 @@ function minimax(state, depth, alpha, beta, isMaximizing) {
   }
   
   if (isMaximizing) {
-    // Turno AI (O)
     let maxEval = -Infinity;
     
     for (const move of moves) {
@@ -124,14 +119,11 @@ function minimax(state, depth, alpha, beta, isMaximizing) {
       maxEval = Math.max(maxEval, eval_);
       alpha = Math.max(alpha, eval_);
       
-      if (beta <= alpha) {
-        break; // Beta cutoff
-      }
+      if (beta <= alpha) break;
     }
     
     return maxEval;
   } else {
-    // Turno giocatore (X)
     let minEval = Infinity;
     
     for (const move of moves) {
@@ -142,19 +134,17 @@ function minimax(state, depth, alpha, beta, isMaximizing) {
       minEval = Math.min(minEval, eval_);
       beta = Math.min(beta, eval_);
       
-      if (beta <= alpha) {
-        break; // Alpha cutoff
-      }
+      if (beta <= alpha) break;
     }
     
     return minEval;
   }
 }
 
-/**
- * Trova la mossa migliore usando minimax
- */
-export function getMinimaxMove(state, depth = MAX_DEPTH) {
+export function getMinimaxMove(state, depth = MAX_DEPTH, maxTimeMs = 1000) {
+  startTime = Date.now();
+  timeLimit = maxTimeMs;
+  
   const moves = getValidMoves(state);
   
   if (moves.length === 0) {
@@ -178,7 +168,14 @@ export function getMinimaxMove(state, depth = MAX_DEPTH) {
     }
     
     alpha = Math.max(alpha, bestValue);
+    
+    // Timeout check
+    if (Date.now() - startTime > timeLimit) {
+      console.log(`Minimax timeout dopo ${Date.now() - startTime}ms`);
+      break;
+    }
   }
   
+  console.log(`Minimax completato in ${Date.now() - startTime}ms`);
   return bestMove;
 }
