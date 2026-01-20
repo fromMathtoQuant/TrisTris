@@ -67,6 +67,11 @@ document.addEventListener("click", async (e) => {
 
   /* ---- BOTTONE ONLINE ---- */
   if (el.dataset.action === "start-online") {
+    // Controlla se storage è disponibile
+    if (typeof window.storage === 'undefined') {
+      alert("La modalità online non è disponibile in questo ambiente.\n\nProva ad usare l'app da claude.ai");
+      return;
+    }
     state.ui.screen = "online";
     renderStatus(state);
     renderBoard(state);
@@ -84,10 +89,9 @@ document.addEventListener("click", async (e) => {
       renderStatus(state);
       renderBoard(state);
       
-      // Aspetta che qualcuno si unisca
       waitForOpponent(result.gameCode);
     } else {
-      alert("Errore nella creazione della partita. Riprova.");
+      alert(`Errore nella creazione della partita:\n${result.error}\n\nLa modalità online richiede window.storage che potrebbe non essere disponibile.`);
     }
     return;
   }
@@ -108,13 +112,11 @@ document.addEventListener("click", async (e) => {
       state.onlineGameCode = result.gameCode;
       state.onlinePlayerId = result.playerId;
       
-      // Carica lo stato iniziale
       const savedState = await loadGameState(result.gameCode);
       if (savedState) {
         Object.assign(state, savedState);
       }
       
-      // Ottieni player1 ID
       try {
         const gameResult = await window.storage.get(`game:${result.gameCode}`, true);
         if (gameResult) {
@@ -128,7 +130,6 @@ document.addEventListener("click", async (e) => {
       renderStatus(state);
       renderBoard(state);
       
-      // Avvia polling
       startOnlinePolling(result.gameCode);
     } else {
       alert(result.error || "Errore nell'unione alla partita");
@@ -191,20 +192,17 @@ document.addEventListener("click", async (e) => {
     return;
   }
 
-  /* ---- PRIMO CLICK: macro → APRI MICRO con animazione ---- */
+  /* ---- PRIMO CLICK: macro → APRI MICRO ---- */
   if (el.closest(".macro-cell") && state.ui.viewingMicro === null) {
     const cell = el.closest(".macro-cell");
     const idx = Number(cell.dataset.micro);
   
     if (!isMicroPlayable(state, idx)) return;
   
-    // In modalità online, blocca se non è il tuo turno
     if (state.gameMode === "online") {
       const isMyTurn = (state.turn === 0 && state.onlinePlayerId === state.onlinePlayer1Id) ||
                        (state.turn === 1 && state.onlinePlayerId !== state.onlinePlayer1Id);
-      if (!isMyTurn) {
-        return; // Non è il tuo turno
-      }
+      if (!isMyTurn) return;
     }
   
     animateMicroZoomIn(cell, idx);
@@ -223,28 +221,23 @@ document.addEventListener("click", async (e) => {
 });
 
 // ==========================================
-// GESTIONE MOSSA E AI
+// GESTIONE MOSSA
 // ==========================================
 
 async function handleMove(micro, row, col) {
-  // In modalità online, verifica che sia il tuo turno
   if (state.gameMode === "online") {
     const isMyTurn = (state.turn === 0 && state.onlinePlayerId === state.onlinePlayer1Id) ||
                      (state.turn === 1 && state.onlinePlayerId !== state.onlinePlayer1Id);
-    if (!isMyTurn) {
-      return; // Non è il tuo turno
-    }
+    if (!isMyTurn) return;
   }
 
   const result = playMove(state, micro, row, col);
 
   if (result.moved) {
-    // Chiudi modal e torna alla macro
     state.ui.viewingMicro = null;
     renderStatus(state);
     renderBoard(state);
 
-    // Salva stato online
     if (state.gameMode === "online") {
       await saveGameState(state.onlineGameCode, {
         macroBoard: state.macroBoard,
@@ -254,7 +247,6 @@ async function handleMove(micro, row, col) {
       });
     }
 
-    // Controlla fine partita
     if (result.gameEnd) {
       if (state.gameMode === "online") {
         await finishGame(state.onlineGameCode, result.gameEnd.winner);
@@ -265,7 +257,6 @@ async function handleMove(micro, row, col) {
       return;
     }
 
-    // Se è il turno dell'AI, falla giocare
     if (state.gameMode === "ai" && state.turn === 1) {
       await playAITurn();
     }
@@ -273,7 +264,6 @@ async function handleMove(micro, row, col) {
 }
 
 async function playAITurn() {
-  // Delay per rendere più naturale
   await new Promise(resolve => setTimeout(resolve, 800));
   
   renderStatus(state);
@@ -317,7 +307,6 @@ async function waitForOpponent(gameCode) {
           renderStatus(state);
           renderBoard(state);
           
-          // Avvia polling
           startOnlinePolling(gameCode);
         }
       }
@@ -326,7 +315,6 @@ async function waitForOpponent(gameCode) {
     }
   }, 1000);
   
-  // Timeout dopo 5 minuti
   setTimeout(() => {
     clearInterval(checkInterval);
     if (state.onlineWaiting) {
@@ -386,7 +374,6 @@ function showGameEndDialog(winner) {
     stopPolling(state.onlinePollingId);
   }
   
-  // Torna al menu
   state.ui.screen = "menu";
   renderStatus(state);
   renderBoard(state);
@@ -408,39 +395,47 @@ function animateMicroZoomIn(macroCellEl, microIndex) {
   fade.className = "fade-overlay";
   document.body.appendChild(fade);
 
-  const preview = macroCellEl.querySelector(".micro-grid");
-  const clone = preview.cloneNode(true);
-  clone.classList.add("micro-zoom-clone");
+  // Crea clone della micro griglia
+  const clone = document.createElement("div");
+  clone.className = "micro-zoom-clone";
+  
+  // Copia le celle
+  const cells = macroCellEl.querySelectorAll(".micro-cell");
+  cells.forEach(cell => {
+    const cloneCell = cell.cloneNode(true);
+    clone.appendChild(cloneCell);
+  });
+  
   document.body.appendChild(clone);
 
-  const rect = preview.getBoundingClientRect();
+  const rect = macroCellEl.getBoundingClientRect();
   clone.style.left = rect.left + "px";
   clone.style.top = rect.top + "px";
   clone.style.width = rect.width + "px";
   clone.style.height = rect.height + "px";
 
   // Force reflow
-  clone.getBoundingClientRect();
+  requestAnimationFrame(() => {
+    const targetSize = Math.min(window.innerWidth * 0.9, window.innerHeight * 0.85);
+    const centerX = (window.innerWidth - targetSize) / 2;
+    const centerY = (window.innerHeight - targetSize) / 2;
 
-  const targetSize = Math.min(window.innerWidth * 0.9, window.innerHeight * 0.9);
-  const centerX = (window.innerWidth - targetSize) / 2;
-  const centerY = (window.innerHeight - targetSize) / 2;
+    const scale = targetSize / rect.width;
+    const translateX = centerX - rect.left;
+    const translateY = centerY - rect.top;
 
-  const scaleX = targetSize / rect.width;
-  const scaleY = targetSize / rect.height;
-  const translateX = centerX - rect.left;
-  const translateY = centerY - rect.top;
+    fade.classList.add("active");
+    clone.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+    clone.style.opacity = "1";
 
-  fade.classList.add("active");
-  clone.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scaleX}, ${scaleY})`;
-
-  setTimeout(() => {
-    state.ui.viewingMicro = microIndex;
-    renderStatus(state);
-    renderBoard(state);
-    clone.remove();
-    fade.remove();
-  }, 400);
+    setTimeout(() => {
+      state.ui.viewingMicro = microIndex;
+      renderStatus(state);
+      renderBoard(state);
+      clone.remove();
+      fade.remove();
+    }, 500);
+  });
 }
 
 /* =============================
@@ -455,12 +450,10 @@ function animateMicroZoomOut(targetMicroIndex, onComplete) {
 
   const rectStart = fullscreen.getBoundingClientRect();
   
-  // Prima chiudi la modal per poter vedere la macro cell
   state.ui.viewingMicro = null;
   renderStatus(state);
   renderBoard(state);
   
-  // Ora trova la macro cell di destinazione
   setTimeout(() => {
     const macroCell = document.querySelector(`.macro-cell[data-micro="${targetMicroIndex}"]`);
     if (!macroCell) {
@@ -468,42 +461,34 @@ function animateMicroZoomOut(targetMicroIndex, onComplete) {
       return;
     }
     
-    const preview = macroCell.querySelector(".micro-grid");
-    if (!preview) {
-      onComplete();
-      return;
-    }
-    
-    const rectEnd = preview.getBoundingClientRect();
+    const rectEnd = macroCell.getBoundingClientRect();
 
     const fade = document.createElement("div");
     fade.className = "fade-overlay active";
     document.body.appendChild(fade);
 
     const clone = fullscreen.cloneNode(true);
-    clone.classList.add("micro-zoom-clone");
-
+    clone.className = "micro-zoom-clone";
     clone.style.left = rectStart.left + "px";
     clone.style.top = rectStart.top + "px";
     clone.style.width = rectStart.width + "px";
     clone.style.height = rectStart.height + "px";
+    
     document.body.appendChild(clone);
 
-    // Force reflow
-    clone.getBoundingClientRect();
+    requestAnimationFrame(() => {
+      const scale = rectEnd.width / rectStart.width;
+      const translateX = rectEnd.left - rectStart.left;
+      const translateY = rectEnd.top - rectStart.top;
 
-    const scaleX = rectEnd.width / rectStart.width;
-    const scaleY = rectEnd.height / rectStart.height;
-    const translateX = rectEnd.left - rectStart.left;
-    const translateY = rectEnd.top - rectStart.top;
+      clone.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+      fade.classList.remove("active");
 
-    clone.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scaleX}, ${scaleY})`;
-    fade.classList.remove("active");
-
-    setTimeout(() => {
-      clone.remove();
-      fade.remove();
-      onComplete();
-    }, 400);
+      setTimeout(() => {
+        clone.remove();
+        fade.remove();
+        onComplete();
+      }, 500);
+    });
   }, 50);
 }
