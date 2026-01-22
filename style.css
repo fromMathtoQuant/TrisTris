@@ -82,8 +82,9 @@ body{
   touch-action:manipulation;
   box-shadow:0 4px 12px rgba(6,182,212,0.3);
   transition:all 0.2s;
-  margin-bottom: 1rem;
-  align-self: flex-start;
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 
 .back-menu-btn:active {
@@ -398,31 +399,39 @@ body{
 /*       TIMERS                       */
 /* ---------------------------------- */
 .timer-top {
-  width: min(700px, 92vw);
+  width: auto;
+  max-width: 140px;
   background: rgba(255,255,255,0.95);
   border: 3px solid rgba(6,182,212,0.4);
-  border-radius: 12px;
-  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  padding: 0.5rem 0.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  margin-bottom: 0.5rem;
+  position: absolute;
+  top: 0;
+  right: 0;
+  pointer-events: none;
 }
 
 .timer-bottom {
-  width: min(700px, 92vw);
+  width: auto;
+  max-width: 140px;
   background: rgba(255,255,255,0.95);
   border: 3px solid rgba(6,182,212,0.4);
-  border-radius: 12px;
-  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  padding: 0.5rem 0.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  margin-top: 0.5rem;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  pointer-events: none;
 }
 
 .timer-top.active,
@@ -444,11 +453,12 @@ body{
 }
 
 .timer-symbol {
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .timer-symbol img {
@@ -459,10 +469,10 @@ body{
 
 .timer-time {
   font-weight: 900;
-  font-size: 1.4rem;
+  font-size: 1.1rem;
   color: #0c4a6e;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
 }
 
 .timer-top.warning .timer-time,
@@ -477,13 +487,19 @@ body{
 
 /* Mobile adjustments for timers */
 @media (max-width: 768px) {
+  .timer-top,
+  .timer-bottom {
+    max-width: 120px;
+    padding: 0.4rem 0.6rem;
+  }
+  
   .timer-symbol {
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
   }
   
   .timer-time {
-    font-size: 1.1rem;
+    font-size: 1rem;
   }
 }
 
@@ -504,6 +520,7 @@ body{
   gap:1rem;
   width:100%;
   position: relative;
+  padding: 3.5rem 0;
 }
 
 .macro-grid {
@@ -636,7 +653,9 @@ body{
   touch-action: manipulation;
   box-shadow: 0 3px 10px rgba(239,68,68,0.3);
   transition: all 0.2s;
-  margin-top: 0.5rem;
+  position: absolute;
+  bottom: 0;
+  left: 0;
 }
 
 .surrender-btn:active {
@@ -775,7 +794,7 @@ body{
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0);
-  transition: background 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
+  transition: background 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   z-index: 9997;
   pointer-events: none;
 }
@@ -788,7 +807,7 @@ body{
   position: fixed;
   z-index: 9998;
   pointer-events: none;
-  transition: all 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   will-change: transform, opacity;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -796,6 +815,7 @@ body{
   background: var(--line);
   padding: 2px;
   border-radius: 4px;
+  transform-origin: center center;
 }
 
 .micro-zoom-clone .micro-cell {
