@@ -653,14 +653,14 @@ function renderMacro(state, root) {
   root.innerHTML = "";
   root.className = "board-placeholder";
 
+  const gameContainer = document.createElement("div");
+  gameContainer.className = "game-container";
+
   const backBtn = document.createElement("button");
   backBtn.textContent = "← Menu";
   backBtn.className = "back-menu-btn";
   backBtn.dataset.action = "back-to-menu";
-  root.appendChild(backBtn);
-
-  const gameContainer = document.createElement("div");
-  gameContainer.className = "game-container";
+  gameContainer.appendChild(backBtn);
 
   // Render timer superiore (O)
   const timers = renderTimers(state);
