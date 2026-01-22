@@ -238,10 +238,12 @@ document.addEventListener("click", async (e) => {
   if (el.dataset.action === "cancel-online") {
     if (state.onlineChannel) {
       await unsubscribe(state.onlineChannel);
+      state.onlineChannel = null;
     }
-    state.ui.screen = "online";
+    state.ui.screen = "menu";
     state.onlineWaiting = false;
     state.onlineGameCode = null;
+    state.onlineGameId = null;
     renderStatus(state);
     renderBoard(state);
     return;
