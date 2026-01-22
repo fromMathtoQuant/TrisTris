@@ -29,6 +29,15 @@ function getPositionDescription(cellIndex) {
 }
 
 /* ------------------------------
+   FORMAT TIME
+-------------------------------- */
+function formatTime(seconds) {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+/* ------------------------------
    BAR STATUS
 -------------------------------- */
 export function renderStatus(state) {
@@ -59,6 +68,11 @@ export function renderStatus(state) {
     return;
   }
 
+  if (state.gameMode === "ai" && state.turn === 1) {
+    status.textContent = "Turno dell'AI...";
+    return;
+  }
+  
   if (state.gameMode === "online") {
     const isMyTurn = (state.turn === 0 && state.onlinePlayerId === state.onlinePlayer1Id) ||
                      (state.turn === 1 && state.onlinePlayerId !== state.onlinePlayer1Id);
@@ -371,7 +385,7 @@ function renderOnlineModal(root, state) {
 
     const cancelBtn = document.createElement("button");
     cancelBtn.className = "online-btn online-cancel";
-    cancelBtn.textContent = "Annulla";
+    cancelBtn.textContent = "Torna al Menu";
     cancelBtn.dataset.action = "cancel-online";
 
     joinSection.appendChild(joinLabel);
@@ -470,6 +484,75 @@ function renderLeaderboardModal(root, state) {
 }
 
 /* ------------------------------
+   RENDER TIMERS
+-------------------------------- */
+function renderTimers(state, container) {
+  if (state.gameMode !== "pvp" && state.gameMode !== "online") {
+    return;
+  }
+
+  const timersContainer = document.createElement("div");
+  timersContainer.className = "timers-container";
+
+  // Timer O (sopra)
+  const timerO = document.createElement("div");
+  timerO.className = "timer";
+  if (state.turn === 1) {
+    timerO.classList.add("active");
+  }
+  if (state.timerO <= 60 && state.timerO > 10) {
+    timerO.classList.add("warning");
+  } else if (state.timerO <= 10) {
+    timerO.classList.add("danger");
+  }
+
+  const symbolO = document.createElement("div");
+  symbolO.className = "timer-symbol";
+  const imgO = document.createElement("img");
+  imgO.src = "O.png";
+  imgO.alt = "O";
+  symbolO.appendChild(imgO);
+
+  const timeO = document.createElement("div");
+  timeO.className = "timer-time";
+  timeO.textContent = formatTime(state.timerO);
+
+  timerO.appendChild(symbolO);
+  timerO.appendChild(timeO);
+
+  // Timer X (sotto)
+  const timerX = document.createElement("div");
+  timerX.className = "timer";
+  if (state.turn === 0) {
+    timerX.classList.add("active");
+  }
+  if (state.timerX <= 60 && state.timerX > 10) {
+    timerX.classList.add("warning");
+  } else if (state.timerX <= 10) {
+    timerX.classList.add("danger");
+  }
+
+  const symbolX = document.createElement("div");
+  symbolX.className = "timer-symbol";
+  const imgX = document.createElement("img");
+  imgX.src = "ICS.png";
+  imgX.alt = "X";
+  symbolX.appendChild(imgX);
+
+  const timeX = document.createElement("div");
+  timeX.className = "timer-time";
+  timeX.textContent = formatTime(state.timerX);
+
+  timerX.appendChild(symbolX);
+  timerX.appendChild(timeX);
+
+  timersContainer.appendChild(timerO);
+  timersContainer.appendChild(timerX);
+
+  container.appendChild(timersContainer);
+}
+
+/* ------------------------------
    MACROGRID
 -------------------------------- */
 function renderMacro(state, root) {
@@ -531,6 +614,9 @@ function renderMacro(state, root) {
   }
 
   gameContainer.appendChild(macro);
+
+  // Render timers
+  renderTimers(state, gameContainer);
 
   if (state.gameMode === "ai" && state.turn === 1 && state.ui.aiThinking) {
     const loadingDiv = document.createElement("div");
