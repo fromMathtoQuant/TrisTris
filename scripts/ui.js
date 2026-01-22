@@ -2,12 +2,41 @@ import { getMicroBoardIndex, getMacroCellCoords } from "../app/boardModel.js";
 import { isMicroPlayable, isMicroWon } from "../app/gameRules.js";
 
 /* ------------------------------
+   HELPER: Descrizione posizione testuale
+-------------------------------- */
+function getPositionDescription(cellIndex) {
+  const r = Math.floor(cellIndex / 3);
+  const c = cellIndex % 3;
+  
+  const rowPos = (r === 0) ? "in alto"
+              : (r === 1) ? "al centro"
+              :              "in basso";
+ 
+  const colPos = (c === 0) ? "a sinistra"
+              : (c === 1) ? "al centro"
+              :              "a destra";
+ 
+  // Se entrambe sono "al centro" (r === 1 e c === 1), evitiamo ripetizioni
+  const descrizionePos = (r === 1 && c === 1)
+    ? "al centro"
+    : (r === 1)
+      ? `al centro ${colPos}`
+      : (c === 1)
+        ? `${rowPos} al centro`
+        : `${rowPos} ${colPos}`;
+  
+  return descrizionePos;
+}
+
+/* ------------------------------
    BAR STATUS
 -------------------------------- */
 export function renderStatus(state) {
   const status = document.getElementById("status-bar");
   
-  if (state.ui.screen === "menu" || state.ui.screen === "difficulty" || state.ui.screen === "online") {
+  if (state.ui.screen === "menu" || state.ui.screen === "difficulty" || 
+      state.ui.screen === "online" || state.ui.screen === "nickname" ||
+      state.ui.screen === "leaderboard") {
     status.style.display = "none";
     return;
   }
@@ -17,16 +46,15 @@ export function renderStatus(state) {
 
   if (state.ui.viewingMicro !== null) {
     const idx = state.ui.viewingMicro;
-    const r = Math.floor(idx / 3);
-    const c = idx % 3;
+    const descrizione = getPositionDescription(idx);
     
     if (state.gameMode === "ai" && state.turn === 1) {
-      status.textContent = `AI sta pensando nella micro (${r+1}, ${c+1})...`;
+      status.textContent = `AI sta pensando nella casella ${descrizione}`;
     } else if (state.gameMode === "online") {
       const symbol = state.onlinePlayerId === state.onlinePlayer1Id ? "X" : "O";
-      status.textContent = `Tu sei ${symbol} - Giocando nella micro (${r+1}, ${c+1})`;
+      status.textContent = `Tu sei ${symbol} - Giocando nella casella ${descrizione}`;
     } else {
-      status.textContent = `Stai giocando nella micro (${r+1}, ${c+1})`;
+      status.textContent = `Stai giocando nella casella ${descrizione}`;
     }
     return;
   }
@@ -43,11 +71,10 @@ export function renderStatus(state) {
     
     if (isMyTurn) {
       if (state.nextForcedCell === null) {
-        status.textContent = `Il tuo turno (${mySymbol}) — scegli una micro`;
+        status.textContent = `Il tuo turno (${mySymbol}) — scegli una casella`;
       } else {
-        const r = Math.floor(state.nextForcedCell / 3);
-        const c = state.nextForcedCell % 3;
-        status.textContent = `Il tuo turno (${mySymbol}) — gioca nella micro (${r+1}, ${c+1})`;
+        const descrizione = getPositionDescription(state.nextForcedCell);
+        status.textContent = `Tocca a ${mySymbol} — devi giocare nella casella ${descrizione}`;
       }
     } else {
       status.textContent = `In attesa dell'avversario...`;
@@ -56,11 +83,10 @@ export function renderStatus(state) {
   }
 
   if (state.nextForcedCell === null) {
-    status.textContent = `Turno: ${player} — scegli una micro`;
+    status.textContent = `Turno: ${player} — scegli una casella`;
   } else {
-    const r = Math.floor(state.nextForcedCell / 3);
-    const c = state.nextForcedCell % 3;
-    status.textContent = `Turno: ${player} — devi giocare nella micro (${r+1}, ${c+1})`;
+    const descrizione = getPositionDescription(state.nextForcedCell);
+    status.textContent = `Tocca a ${player} — devi giocare nella casella ${descrizione}`;
   }
 }
 
@@ -80,8 +106,18 @@ export function renderBoard(state) {
     return;
   }
 
+  if (state.ui.screen === "nickname") {
+    renderNicknameModal(root);
+    return;
+  }
+
   if (state.ui.screen === "online") {
     renderOnlineModal(root, state);
+    return;
+  }
+
+  if (state.ui.screen === "leaderboard") {
+    renderLeaderboardModal(root, state);
     return;
   }
 
@@ -181,6 +217,71 @@ function renderDifficultyModal(root) {
 }
 
 /* ------------------------------
+   NICKNAME MODAL
+-------------------------------- */
+function renderNicknameModal(root) {
+  root.innerHTML = "";
+  root.className = "board-placeholder";
+
+  const modal = document.createElement("div");
+  modal.className = "nickname-modal";
+
+  const content = document.createElement("div");
+  content.className = "nickname-content";
+
+  const title = document.createElement("h2");
+  title.className = "nickname-title";
+  title.textContent = "Scegli il tuo Nickname";
+
+  const description = document.createElement("p");
+  description.style.textAlign = "center";
+  description.style.color = "#64748b";
+  description.style.marginBottom = "1.5rem";
+  description.textContent = "Il nickname sarà usato per la classifica ELO";
+
+  const input = document.createElement("input");
+  input.type = "text";
+  input.placeholder = "Inserisci nickname";
+  input.className = "nickname-input";
+  input.id = "nickname-input";
+  input.maxLength = 20;
+  input.autocomplete = "off";
+
+  const buttonsContainer = document.createElement("div");
+  buttonsContainer.className = "difficulty-buttons";
+
+  const confirmBtn = document.createElement("button");
+  confirmBtn.className = "online-btn";
+  confirmBtn.textContent = "Conferma";
+  confirmBtn.dataset.action = "confirm-nickname";
+
+  const cancelBtn = document.createElement("button");
+  cancelBtn.className = "online-btn online-cancel";
+  cancelBtn.textContent = "Annulla";
+  cancelBtn.dataset.action = "cancel-nickname";
+
+  buttonsContainer.appendChild(confirmBtn);
+  buttonsContainer.appendChild(cancelBtn);
+
+  content.appendChild(title);
+  content.appendChild(description);
+  content.appendChild(input);
+  content.appendChild(buttonsContainer);
+  modal.appendChild(content);
+  root.appendChild(modal);
+
+  // Focus sull'input
+  setTimeout(() => input.focus(), 100);
+
+  // Enter per confermare
+  input.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+      confirmBtn.click();
+    }
+  });
+}
+
+/* ------------------------------
    ONLINE MODAL
 -------------------------------- */
 function renderOnlineModal(root, state) {
@@ -203,18 +304,29 @@ function renderOnlineModal(root, state) {
   if (state.onlineWaiting) {
     const info = document.createElement("div");
     info.className = "online-info";
+    info.innerHTML = `<div style="margin-bottom: 1rem;">Condividi questo codice:</div>`;
+    
+    const codeBox = document.createElement("div");
+    codeBox.className = "code-box";
+    
+    const codeText = document.createElement("div");
+    codeText.className = "online-code";
+    codeText.textContent = state.onlineGameCode;
     
     const copyBtn = document.createElement("button");
     copyBtn.className = "copy-code-btn";
-    copyBtn.textContent = "Copia";
+    copyBtn.innerHTML = "📋";
     copyBtn.dataset.action = "copy-code";
+    copyBtn.title = "Copia codice";
     
-    info.innerHTML = `
-      <div>Condividi questo codice:</div>
-      <div class="online-code">${state.onlineGameCode}</div>
-      <div style="margin-top: 1rem;">In attesa che si unisca...</div>
-    `;
-    info.appendChild(copyBtn);
+    codeBox.appendChild(codeText);
+    codeBox.appendChild(copyBtn);
+    info.appendChild(codeBox);
+    
+    const waitText = document.createElement("div");
+    waitText.style.marginTop = "1rem";
+    waitText.textContent = "In attesa che si unisca...";
+    info.appendChild(waitText);
     
     const loader = document.createElement("div");
     loader.className = "loader";
@@ -257,6 +369,11 @@ function renderOnlineModal(root, state) {
     joinBtn.textContent = "Unisciti alla Partita";
     joinBtn.dataset.action = "join-online";
 
+    const leaderboardBtn = document.createElement("button");
+    leaderboardBtn.className = "leaderboard-btn";
+    leaderboardBtn.innerHTML = "🏆 Classifica";
+    leaderboardBtn.dataset.action = "show-leaderboard";
+
     const cancelBtn = document.createElement("button");
     cancelBtn.className = "online-btn online-cancel";
     cancelBtn.textContent = "Annulla";
@@ -268,6 +385,7 @@ function renderOnlineModal(root, state) {
     buttonsContainer.appendChild(createBtn);
     buttonsContainer.appendChild(joinSection);
     buttonsContainer.appendChild(joinBtn);
+    buttonsContainer.appendChild(leaderboardBtn);
     buttonsContainer.appendChild(cancelBtn);
 
     content.appendChild(title);
@@ -279,20 +397,96 @@ function renderOnlineModal(root, state) {
 }
 
 /* ------------------------------
+   LEADERBOARD MODAL
+-------------------------------- */
+function renderLeaderboardModal(root, state) {
+  root.innerHTML = "";
+  root.className = "board-placeholder";
+
+  const modal = document.createElement("div");
+  modal.className = "leaderboard-modal";
+
+  const content = document.createElement("div");
+  content.className = "leaderboard-content";
+
+  const title = document.createElement("h2");
+  title.className = "leaderboard-title";
+  title.textContent = "🏆 Classifica ELO";
+
+  if (state.leaderboard && state.leaderboard.length > 0) {
+    const list = document.createElement("ul");
+    list.className = "leaderboard-list";
+
+    state.leaderboard.forEach((player, index) => {
+      const item = document.createElement("li");
+      item.className = "leaderboard-item";
+
+      const rank = document.createElement("div");
+      rank.className = "leaderboard-rank";
+      rank.textContent = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : `#${index + 1}`;
+
+      const playerInfo = document.createElement("div");
+      playerInfo.className = "leaderboard-player";
+
+      const nickname = document.createElement("div");
+      nickname.className = "leaderboard-nickname";
+      nickname.textContent = player.nickname;
+
+      const stats = document.createElement("div");
+      stats.className = "leaderboard-stats";
+      stats.textContent = `${player.wins}W - ${player.losses}L - ${player.draws}D`;
+
+      playerInfo.appendChild(nickname);
+      playerInfo.appendChild(stats);
+
+      const elo = document.createElement("div");
+      elo.className = "leaderboard-elo";
+      elo.textContent = player.elo_rating;
+
+      item.appendChild(rank);
+      item.appendChild(playerInfo);
+      item.appendChild(elo);
+
+      list.appendChild(item);
+    });
+
+    content.appendChild(title);
+    content.appendChild(list);
+  } else {
+    const emptyMsg = document.createElement("p");
+    emptyMsg.style.textAlign = "center";
+    emptyMsg.style.color = "#64748b";
+    emptyMsg.style.padding = "2rem";
+    emptyMsg.textContent = "Nessun giocatore in classifica";
+
+    content.appendChild(title);
+    content.appendChild(emptyMsg);
+  }
+
+  const closeBtn = document.createElement("button");
+  closeBtn.className = "online-btn";
+  closeBtn.textContent = "Chiudi";
+  closeBtn.dataset.action = "close-leaderboard";
+  closeBtn.style.marginTop = "1rem";
+
+  content.appendChild(closeBtn);
+  modal.appendChild(content);
+  root.appendChild(modal);
+}
+
+/* ------------------------------
    MACROGRID
 -------------------------------- */
 function renderMacro(state, root) {
   root.innerHTML = "";
   root.className = "board-placeholder";
 
-  // Bottone torna al menu
   const backBtn = document.createElement("button");
   backBtn.textContent = "← Menu";
   backBtn.className = "back-menu-btn";
   backBtn.dataset.action = "back-to-menu";
   root.appendChild(backBtn);
 
-  // Container per griglia e loading
   const gameContainer = document.createElement("div");
   gameContainer.className = "game-container";
 
@@ -308,7 +502,6 @@ function renderMacro(state, root) {
     macroCell.dataset.micro = idx;
 
     if (active.has(idx)) {
-      // Bordo rosso per X, giallo per O
       macroCell.classList.add(isXTurn ? "micro-grid--active-x" : "micro-grid--active-o");
     } else {
       macroCell.classList.add("micro-grid--disabled");
@@ -329,7 +522,6 @@ function renderMacro(state, root) {
       
       macroCell.appendChild(overlay);
       
-      // Celle vuote per layout
       for (let i = 0; i < 9; i++) {
         const cell = document.createElement("div");
         cell.className = "micro-cell";
@@ -345,7 +537,6 @@ function renderMacro(state, root) {
 
   gameContainer.appendChild(macro);
 
-  // AI Loading spinner
   if (state.gameMode === "ai" && state.turn === 1 && state.ui.aiThinking) {
     const loadingDiv = document.createElement("div");
     loadingDiv.className = "ai-loading";
