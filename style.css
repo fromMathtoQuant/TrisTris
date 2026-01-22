@@ -164,7 +164,7 @@ body{
 /* ---------------------------------- */
 /*       MODALS                       */
 /* ---------------------------------- */
-.difficulty-modal, .online-modal {
+.difficulty-modal, .online-modal, .nickname-modal, .leaderboard-modal {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.75);
@@ -175,7 +175,7 @@ body{
   padding: 2rem;
 }
 
-.difficulty-content, .online-content {
+.difficulty-content, .online-content, .nickname-content, .leaderboard-content {
   background: white;
   border: 2px solid rgba(6,182,212,0.3);
   border-radius: 16px;
@@ -183,9 +183,11 @@ body{
   max-width: 400px;
   width: 100%;
   box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  max-height: 80vh;
+  overflow-y: auto;
 }
 
-.difficulty-title, .online-title {
+.difficulty-title, .online-title, .nickname-title, .leaderboard-title {
   font-size: 1.6rem;
   margin: 0 0 1.5rem 0;
   text-align: center;
@@ -238,7 +240,7 @@ body{
   border-color: #d1d5db;
 }
 
-.online-input {
+.online-input, .nickname-input {
   width: 100%;
   padding: 0.75rem;
   border: 2px solid rgba(6,182,212,0.3);
@@ -253,8 +255,8 @@ body{
 .online-info {
   background: rgba(6,182,212,0.15);
   border: 2px solid rgba(6,182,212,0.3);
-  border-radius: 10px;
-  padding: 1rem;
+  border-radius: 16px;
+  padding: 1.5rem;
   margin-bottom: 1rem;
   text-align: center;
   font-size: 0.95rem;
@@ -262,27 +264,40 @@ body{
   position: relative;
 }
 
+.code-box {
+  background: linear-gradient(135deg, rgba(6,182,212,0.2) 0%, rgba(34,211,238,0.15) 100%);
+  border: 3px solid rgba(6,182,212,0.4);
+  border-radius: 16px;
+  padding: 1.5rem 3rem 1.5rem 1.5rem;
+  margin: 1rem 0;
+  position: relative;
+}
+
 .online-code {
-  font-weight: 700;
-  font-size: 1.5rem;
+  font-weight: 900;
+  font-size: 2rem;
   color: #0891b2;
-  letter-spacing: 3px;
-  margin: 0.5rem 0;
+  letter-spacing: 6px;
+  margin: 0;
+  text-align: center;
 }
 
 .copy-code-btn {
   position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
+  top: 8px;
+  right: 8px;
   background: rgba(6,182,212,0.2);
-  border: 1px solid rgba(6,182,212,0.4);
-  border-radius: 6px;
-  padding: 0.4rem 0.7rem;
-  font-size: 0.85rem;
+  border: 2px solid rgba(6,182,212,0.4);
+  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   transition: all 0.2s;
-  color: #0c4a6e;
-  font-weight: 600;
+  color: #0891b2;
+  font-size: 1.2rem;
 }
 
 .copy-code-btn:hover {
@@ -297,6 +312,86 @@ body{
   background: rgba(16,185,129,0.3);
   border-color: #10b981;
   color: #065f46;
+}
+
+.leaderboard-btn {
+  width: 100%;
+  background: rgba(6,182,212,0.1);
+  color: #0c4a6e;
+  border: 2px solid rgba(6,182,212,0.3);
+  border-radius: 10px;
+  padding: 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: all 0.2s;
+  margin-top: 1rem;
+}
+
+.leaderboard-btn:active {
+  transform: scale(0.98);
+}
+
+.leaderboard-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.leaderboard-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  border-bottom: 1px solid rgba(6,182,212,0.2);
+  background: rgba(6,182,212,0.05);
+  margin-bottom: 0.5rem;
+  border-radius: 8px;
+}
+
+.leaderboard-item:nth-child(1) {
+  background: linear-gradient(135deg, rgba(251,191,36,0.2) 0%, rgba(245,158,11,0.15) 100%);
+  border: 2px solid rgba(251,191,36,0.4);
+}
+
+.leaderboard-item:nth-child(2) {
+  background: linear-gradient(135deg, rgba(156,163,175,0.2) 0%, rgba(107,114,128,0.15) 100%);
+  border: 2px solid rgba(156,163,175,0.4);
+}
+
+.leaderboard-item:nth-child(3) {
+  background: linear-gradient(135deg, rgba(205,127,50,0.2) 0%, rgba(180,83,9,0.15) 100%);
+  border: 2px solid rgba(205,127,50,0.4);
+}
+
+.leaderboard-rank {
+  font-weight: 900;
+  font-size: 1.2rem;
+  width: 40px;
+  text-align: center;
+}
+
+.leaderboard-player {
+  flex: 1;
+  padding: 0 1rem;
+}
+
+.leaderboard-nickname {
+  font-weight: 700;
+  color: #0c4a6e;
+}
+
+.leaderboard-stats {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin-top: 0.25rem;
+}
+
+.leaderboard-elo {
+  font-weight: 900;
+  font-size: 1.3rem;
+  color: #0891b2;
 }
 
 /* ---------------------------------- */
