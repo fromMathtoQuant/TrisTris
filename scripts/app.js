@@ -96,22 +96,82 @@ function startTimer(state) {
     const now = Date.now();
     const elapsed = Math.floor((now - state.lastMoveTime) / 1000);
 
+    let needsUpdate = false;
+
     if (state.turn === 0) {
-      state.timerX = Math.max(0, 300 - elapsed);
-      if (state.timerX === 0) {
-        stopTimer(state);
-        handleTimeoutWin("O");
+      const newTimerX = Math.max(0, 300 - elapsed);
+      if (newTimerX !== state.timerX) {
+        state.timerX = newTimerX;
+        needsUpdate = true;
+        
+        if (state.timerX === 0) {
+          stopTimer(state);
+          handleTimeoutWin("O");
+          return;
+        }
       }
     } else {
-      state.timerO = Math.max(0, 300 - elapsed);
-      if (state.timerO === 0) {
-        stopTimer(state);
-        handleTimeoutWin("X");
+      const newTimerO = Math.max(0, 300 - elapsed);
+      if (newTimerO !== state.timerO) {
+        state.timerO = newTimerO;
+        needsUpdate = true;
+        
+        if (state.timerO === 0) {
+          stopTimer(state);
+          handleTimeoutWin("X");
+          return;
+        }
       }
     }
 
-    renderBoard(state);
-  }, 100);
+    // Aggiorna solo i timer, non tutta la board
+    if (needsUpdate) {
+      updateTimerDisplay(state);
+    }
+  }, 1000); // Aggiorna ogni secondo, non ogni 100ms
+}
+
+function updateTimerDisplay(state) {
+  const timerTopEl = document.querySelector('.timer-top');
+  const timerBottomEl = document.querySelector('.timer-bottom');
+  
+  if (timerTopEl) {
+    const timeEl = timerTopEl.querySelector('.timer-time');
+    if (timeEl) {
+      timeEl.textContent = formatTime(state.timerO);
+    }
+    
+    // Aggiorna classi warning/danger
+    timerTopEl.classList.remove('warning', 'danger', 'active');
+    if (state.turn === 1) timerTopEl.classList.add('active');
+    if (state.timerO <= 60 && state.timerO > 10) {
+      timerTopEl.classList.add('warning');
+    } else if (state.timerO <= 10) {
+      timerTopEl.classList.add('danger');
+    }
+  }
+  
+  if (timerBottomEl) {
+    const timeEl = timerBottomEl.querySelector('.timer-time');
+    if (timeEl) {
+      timeEl.textContent = formatTime(state.timerX);
+    }
+    
+    // Aggiorna classi warning/danger
+    timerBottomEl.classList.remove('warning', 'danger', 'active');
+    if (state.turn === 0) timerBottomEl.classList.add('active');
+    if (state.timerX <= 60 && state.timerX > 10) {
+      timerBottomEl.classList.add('warning');
+    } else if (state.timerX <= 10) {
+      timerBottomEl.classList.add('danger');
+    }
+  }
+}
+
+function formatTime(seconds) {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
 function stopTimer(state) {
@@ -358,22 +418,28 @@ document.addEventListener("click", async (e) => {
     
     const result = await joinGame(code);
     if (result.success) {
-      // Prima di resettare il gioco, chiediamo la modalità
-      const timedChoice = window.confirm("Vuoi giocare con tempo (5 minuti)?\n\nOK = Con tempo\nAnnulla = Classic");
+      // Verifica che non stia giocando contro se stesso
+      if (result.playerId === result.player1Id) {
+        alert("Non puoi giocare contro te stesso!");
+        return;
+      }
       
-      resetGame(state, "online", null, timedChoice);
+      // Carica lo stato del gioco per ottenere la modalità timer
+      const gameState = await loadGameState(result.gameId);
+      const timed = gameState?.state?.timedMode || false;
+      
+      resetGame(state, "online", null, timed);
       state.onlineGameId = result.gameId;
       state.onlineGameCode = result.code;
       state.onlinePlayerId = result.playerId;
       state.onlinePlayer1Id = result.player1Id;
       
-      const gameState = await loadGameState(result.gameId);
       if (gameState && gameState.state) {
         Object.assign(state, gameState.state);
         state.onlinePlayer1Id = gameState.player1Id;
       }
       
-      if (timedChoice) {
+      if (timed) {
         startTimer(state);
       }
       renderStatus(state);
