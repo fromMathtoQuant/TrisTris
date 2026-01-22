@@ -15,24 +15,29 @@ import {
   finishGame,
   checkGameStatus
 } from "../app/supabase.js";
+import {
+  loginUser,
+  loadSession,
+  saveSession,
+  getLeaderboard,
+  updateUserStats
+} from "../app/auth.js";
 
 // Timeout per AI (millisecondi)
 const AI_TIMEOUTS = {
-  easy: 1000,    // 1 secondo
-  medium: 3000,  // 3 secondi
-  hard: 6000     // 6 secondi
+  easy: 1000,
+  medium: 3000,
+  hard: 6000
 };
 
-// Previeni zoom e selezione su iOS
+// Previeni zoom su iOS
 document.addEventListener('gesturestart', (e) => e.preventDefault());
 document.addEventListener('gesturechange', (e) => e.preventDefault());
 document.addEventListener('gestureend', (e) => e.preventDefault());
 
 // Anno footer
 const yearEl = document.getElementById("year");
-if (yearEl) {
-  yearEl.textContent = new Date().getFullYear();
-}
+if (yearEl) yearEl.textContent = new Date().getFullYear();
 
 // Install prompt
 let deferredPrompt = null;
@@ -57,12 +62,18 @@ initSupabase();
 // Stato iniziale
 const state = initGameState();
 
+// Carica sessione utente se esiste
+const savedUser = loadSession();
+if (savedUser) {
+  state.user = savedUser;
+}
+
 // Primo render
 renderStatus(state);
 renderBoard(state);
 
 // ==========================================
-// CLICK HANDLER PRINCIPALE
+// CLICK HANDLER
 // ==========================================
 
 document.addEventListener("click", async (e) => {
@@ -73,14 +84,13 @@ document.addEventListener("click", async (e) => {
   if (el.dataset.action === "copy-code") {
     try {
       await navigator.clipboard.writeText(state.onlineGameCode);
-      el.textContent = "Copiato!";
+      el.innerHTML = "✓";
       el.classList.add("copied");
       setTimeout(() => {
-        el.textContent = "Copia";
+        el.innerHTML = "📋";
         el.classList.remove("copied");
       }, 2000);
     } catch (err) {
-      console.error("Errore copia:", err);
       alert("Impossibile copiare. Codice: " + state.onlineGameCode);
     }
     return;
@@ -104,6 +114,67 @@ document.addEventListener("click", async (e) => {
 
   /* ---- BOTTONE ONLINE ---- */
   if (el.dataset.action === "start-online") {
+    // Controlla se utente è loggato
+    if (!state.user) {
+      state.ui.screen = "nickname";
+      renderStatus(state);
+      renderBoard(state);
+    } else {
+      state.ui.screen = "online";
+      renderStatus(state);
+      renderBoard(state);
+    }
+    return;
+  }
+
+  /* ---- CONFERMA NICKNAME ---- */
+  if (el.dataset.action === "confirm-nickname") {
+    const input = document.getElementById("nickname-input");
+    const nickname = input?.value?.trim();
+    
+    if (!nickname || nickname.length < 3) {
+      alert("Il nickname deve essere almeno 3 caratteri");
+      return;
+    }
+    
+    // Login/registrazione
+    const result = await loginUser(nickname);
+    if (result.success) {
+      state.user = result.user;
+      saveSession(result.user);
+      state.ui.screen = "online";
+      renderStatus(state);
+      renderBoard(state);
+    } else {
+      alert(result.error || "Errore durante la registrazione");
+    }
+    return;
+  }
+
+  /* ---- ANNULLA NICKNAME ---- */
+  if (el.dataset.action === "cancel-nickname") {
+    state.ui.screen = "menu";
+    renderStatus(state);
+    renderBoard(state);
+    return;
+  }
+
+  /* ---- MOSTRA CLASSIFICA ---- */
+  if (el.dataset.action === "show-leaderboard") {
+    const result = await getLeaderboard(100);
+    if (result.success) {
+      state.leaderboard = result.leaderboard;
+      state.ui.screen = "leaderboard";
+      renderStatus(state);
+      renderBoard(state);
+    } else {
+      alert("Errore caricamento classifica: " + result.error);
+    }
+    return;
+  }
+
+  /* ---- CHIUDI CLASSIFICA ---- */
+  if (el.dataset.action === "close-leaderboard") {
     state.ui.screen = "online";
     renderStatus(state);
     renderBoard(state);
@@ -124,7 +195,7 @@ document.addEventListener("click", async (e) => {
       
       waitForOpponent(result.gameId);
     } else {
-      alert(`Errore nella creazione della partita:\n${result.error}\n\nAssicurati di aver configurato Supabase correttamente.`);
+      alert(`Errore: ${result.error}`);
     }
     return;
   }
@@ -168,7 +239,7 @@ document.addEventListener("click", async (e) => {
     if (state.onlineChannel) {
       await unsubscribe(state.onlineChannel);
     }
-    state.ui.screen = "menu";
+    state.ui.screen = "online";
     state.onlineWaiting = false;
     state.onlineGameCode = null;
     renderStatus(state);
@@ -185,7 +256,7 @@ document.addEventListener("click", async (e) => {
     return;
   }
 
-  /* ---- ANNULLA SELEZIONE DIFFICOLTÀ ---- */
+  /* ---- ANNULLA DIFFICOLTÀ ---- */
   if (el.dataset.action === "cancel-difficulty") {
     state.ui.screen = "menu";
     renderStatus(state);
@@ -193,9 +264,9 @@ document.addEventListener("click", async (e) => {
     return;
   }
 
-  /* ---- BOTTONE TORNA AL MENU ---- */
+  /* ---- TORNA AL MENU ---- */
   if (el.dataset.action === "back-to-menu") {
-    const confirm = window.confirm("Sei sicuro di voler tornare al menu? La partita corrente sarà persa.");
+    const confirm = window.confirm("Tornare al menu? La partita sarà persa.");
     if (confirm) {
       if (state.onlineChannel) {
         await unsubscribe(state.onlineChannel);
@@ -207,7 +278,7 @@ document.addEventListener("click", async (e) => {
     return;
   }
 
-  /* ---- CHIUSURA FULLSCREEN ---- */
+  /* ---- CHIUDI FULLSCREEN ---- */
   if (el.dataset.action === "close-micro") {
     const microIndex = state.ui.viewingMicro;
     animateMicroZoomOut(microIndex, () => {
@@ -218,7 +289,7 @@ document.addEventListener("click", async (e) => {
     return;
   }
 
-  /* ---- PRIMO CLICK: macro → APRI MICRO ---- */
+  /* ---- APRI MICRO ---- */
   if (el.closest(".macro-cell") && state.ui.viewingMicro === null) {
     const cell = el.closest(".macro-cell");
     const idx = Number(cell.dataset.micro);
@@ -235,7 +306,7 @@ document.addEventListener("click", async (e) => {
     return;
   }
 
-  /* ---- SECONDO CLICK: micro fullscreen → mossa ---- */
+  /* ---- MOSSA ---- */
   if (el.classList.contains("micro-cell") && state.ui.viewingMicro !== null) {
     const micro = Number(el.dataset.micro);
     const row   = Number(el.dataset.row);
@@ -276,7 +347,23 @@ async function handleMove(micro, row, col) {
     if (result.gameEnd) {
       if (state.gameMode === "online") {
         await finishGame(state.onlineGameId, result.gameEnd.winner);
+        
+        // Aggiorna ELO
+        if (state.user) {
+          const mySymbol = state.onlinePlayerId === state.onlinePlayer1Id ? "X" : "O";
+          let eloResult;
+          if (result.gameEnd.winner === "draw") {
+            eloResult = "draw";
+          } else if (result.gameEnd.winner === mySymbol) {
+            eloResult = "win";
+          } else {
+            eloResult = "loss";
+          }
+          
+          await updateUserStats(state.user.id, eloResult, 1000);
+        }
       }
+      
       setTimeout(() => {
         showGameEndDialog(result.gameEnd.winner);
       }, 500);
@@ -296,19 +383,17 @@ async function playAITurn() {
   const timeout = AI_TIMEOUTS[state.aiDifficulty] || 3000;
   
   try {
-    // Crea promise con timeout
     const aiMovePromise = getAIMove(state);
     const timeoutPromise = new Promise((_, reject) => 
       setTimeout(() => reject(new Error('Timeout')), timeout)
     );
     
-    // Race tra AI e timeout
     const aiMove = await Promise.race([aiMovePromise, timeoutPromise]);
     
     state.ui.aiThinking = false;
     
     if (!aiMove) {
-      console.error("AI non ha trovato mosse valide");
+      console.error("AI non ha trovato mosse");
       renderBoard(state);
       return;
     }
@@ -326,10 +411,9 @@ async function playAITurn() {
       }
     }
   } catch (error) {
-    console.error("Errore AI o timeout:", error);
+    console.error("Errore AI:", error);
     state.ui.aiThinking = false;
     
-    // Fallback: mossa casuale
     const moves = getAllValidMoves(state);
     if (moves.length > 0) {
       const randomMove = moves[Math.floor(Math.random() * moves.length)];
@@ -366,7 +450,7 @@ function getAllValidMoves(state) {
 }
 
 // ==========================================
-// ONLINE MULTIPLAYER (SUPABASE)
+// ONLINE
 // ==========================================
 
 async function waitForOpponent(gameId) {
@@ -386,8 +470,8 @@ async function waitForOpponent(gameId) {
   setTimeout(() => {
     clearInterval(checkInterval);
     if (state.onlineWaiting) {
-      alert("Tempo scaduto. Nessun avversario si è unito.");
-      state.ui.screen = "menu";
+      alert("Tempo scaduto. Nessun avversario.");
+      state.ui.screen = "online";
       state.onlineWaiting = false;
       renderStatus(state);
       renderBoard(state);
@@ -419,28 +503,28 @@ function startOnlineSubscription(gameId) {
 }
 
 // ==========================================
-// DIALOG FINE PARTITA
+// DIALOG FINE
 // ==========================================
 
 function showGameEndDialog(winner) {
   let message;
   if (winner === "draw") {
-    message = "Partita terminata in PAREGGIO!\n\nNessun giocatore ha vinto.";
+    message = "PAREGGIO!";
   } else if (state.gameMode === "ai") {
     if (winner === "X") {
-      message = "🎉 HAI VINTO! 🎉\n\nComplimenti, hai battuto l'AI!";
+      message = "🎉 HAI VINTO! 🎉";
     } else {
-      message = "😔 L'AI HA VINTO\n\nRiprova con una difficoltà diversa!";
+      message = "😔 L'AI HA VINTO";
     }
   } else if (state.gameMode === "online") {
     const mySymbol = state.onlinePlayerId === state.onlinePlayer1Id ? "X" : "O";
     if (winner === mySymbol) {
-      message = "🎉 HAI VINTO! 🎉\n\nComplimenti per la vittoria!";
+      message = "🎉 HAI VINTO! 🎉";
     } else {
-      message = "😔 HAI PERSO\n\nL'avversario ha vinto questa volta!";
+      message = "😔 HAI PERSO";
     }
   } else {
-    message = `🎉 VITTORIA GIOCATORE ${winner}! 🎉\n\nComplimenti per la vittoria!`;
+    message = `🎉 VITTORIA ${winner}! 🎉`;
   }
   
   alert(message);
@@ -458,13 +542,12 @@ function showGameEndDialog(winner) {
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./service-worker.js")
-      .catch(err => console.error("SW registration failed", err));
+      .catch(err => console.error("SW failed", err));
   });
 }
 
-/* =============================
-   ANIMAZIONE ZOOM-IN
-============================= */
+/* ===== ANIMAZIONI ===== */
+
 function animateMicroZoomIn(macroCellEl, microIndex) {
   const fade = document.createElement("div");
   fade.className = "fade-overlay";
@@ -527,9 +610,6 @@ function animateMicroZoomIn(macroCellEl, microIndex) {
   });
 }
 
-/* =============================
-   ANIMAZIONE ZOOM-OUT
-============================= */
 function animateMicroZoomOut(targetMicroIndex, onComplete) {
   const fullscreen = document.querySelector(".fullscreen-micro");
   if (!fullscreen) {
