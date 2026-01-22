@@ -10,6 +10,11 @@ export function initGameState() {
     nextForcedCell: null,
     gameMode: null, // "pvp" | "ai" | "online"
     aiDifficulty: null, // "easy" | "medium" | "hard"
+    // Timer properties
+    timerX: 300, // 5 minuti in secondi
+    timerO: 300,
+    timerInterval: null,
+    lastMoveTime: null,
     // Online properties (Supabase)
     onlineGameId: null,
     onlineGameCode: null,
@@ -38,6 +43,13 @@ export function resetGame(state, mode = "pvp", difficulty = null) {
   state.ui.viewingMicro = null;
   state.ui.screen = "game";
   state.ui.aiThinking = false;
+  
+  // Reset timers per PvP e Online
+  if (mode === "pvp" || mode === "online") {
+    state.timerX = 300;
+    state.timerO = 300;
+    state.lastMoveTime = Date.now();
+  }
 }
 
 function createEmptyMatrix(size) {
