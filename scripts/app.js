@@ -77,7 +77,7 @@ renderBoard(state);
 // ==========================================
 
 function startTimer(state) {
-  if (state.gameMode !== "pvp" && state.gameMode !== "online") {
+  if (!state.timedMode) {
     return;
   }
 
@@ -122,7 +122,7 @@ function stopTimer(state) {
 }
 
 function switchTimer(state) {
-  if (state.gameMode !== "pvp" && state.gameMode !== "online") {
+  if (!state.timedMode) {
     return;
   }
 
@@ -180,8 +180,32 @@ document.addEventListener("click", async (e) => {
 
   /* ---- BOTTONE PVP ---- */
   if (el.dataset.action === "start-pvp") {
-    resetGame(state, "pvp");
+    state.ui.screen = "pvp-mode";
+    renderStatus(state);
+    renderBoard(state);
+    return;
+  }
+
+  /* ---- PVP TIMED ---- */
+  if (el.dataset.action === "pvp-timed") {
+    resetGame(state, "pvp", null, true);
     startTimer(state);
+    renderStatus(state);
+    renderBoard(state);
+    return;
+  }
+
+  /* ---- PVP CLASSIC ---- */
+  if (el.dataset.action === "pvp-classic") {
+    resetGame(state, "pvp", null, false);
+    renderStatus(state);
+    renderBoard(state);
+    return;
+  }
+
+  /* ---- ANNULLA PVP MODE ---- */
+  if (el.dataset.action === "cancel-pvp-mode") {
+    state.ui.screen = "menu";
     renderStatus(state);
     renderBoard(state);
     return;
@@ -266,6 +290,14 @@ document.addEventListener("click", async (e) => {
 
   /* ---- CREA PARTITA ONLINE ---- */
   if (el.dataset.action === "create-online") {
+    state.ui.screen = "online-mode";
+    renderStatus(state);
+    renderBoard(state);
+    return;
+  }
+
+  /* ---- ONLINE TIMED ---- */
+  if (el.dataset.action === "online-timed") {
     const result = await createGame();
     if (result.success) {
       state.onlineGameId = result.gameId;
@@ -273,13 +305,42 @@ document.addEventListener("click", async (e) => {
       state.onlinePlayerId = result.playerId;
       state.onlinePlayer1Id = result.playerId;
       state.onlineWaiting = true;
+      state.timedMode = true;
       renderStatus(state);
       renderBoard(state);
       
-      waitForOpponent(result.gameId);
+      waitForOpponent(result.gameId, true);
     } else {
       alert(`Errore: ${result.error}`);
     }
+    return;
+  }
+
+  /* ---- ONLINE CLASSIC ---- */
+  if (el.dataset.action === "online-classic") {
+    const result = await createGame();
+    if (result.success) {
+      state.onlineGameId = result.gameId;
+      state.onlineGameCode = result.code;
+      state.onlinePlayerId = result.playerId;
+      state.onlinePlayer1Id = result.playerId;
+      state.onlineWaiting = true;
+      state.timedMode = false;
+      renderStatus(state);
+      renderBoard(state);
+      
+      waitForOpponent(result.gameId, false);
+    } else {
+      alert(`Errore: ${result.error}`);
+    }
+    return;
+  }
+
+  /* ---- ANNULLA ONLINE MODE ---- */
+  if (el.dataset.action === "cancel-online-mode") {
+    state.ui.screen = "online";
+    renderStatus(state);
+    renderBoard(state);
     return;
   }
 
@@ -295,7 +356,10 @@ document.addEventListener("click", async (e) => {
     
     const result = await joinGame(code);
     if (result.success) {
-      resetGame(state, "online");
+      // Prima di resettare il gioco, chiediamo la modalità
+      const timedChoice = window.confirm("Vuoi giocare con tempo (5 minuti)?\n\nOK = Con tempo\nAnnulla = Classic");
+      
+      resetGame(state, "online", null, timedChoice);
       state.onlineGameId = result.gameId;
       state.onlineGameCode = result.code;
       state.onlinePlayerId = result.playerId;
@@ -307,7 +371,9 @@ document.addEventListener("click", async (e) => {
         state.onlinePlayer1Id = gameState.player1Id;
       }
       
-      startTimer(state);
+      if (timedChoice) {
+        startTimer(state);
+      }
       renderStatus(state);
       renderBoard(state);
       
@@ -359,6 +425,34 @@ document.addEventListener("click", async (e) => {
         await unsubscribe(state.onlineChannel);
       }
       stopTimer(state);
+      state.ui.screen = "menu";
+      renderStatus(state);
+      renderBoard(state);
+    }
+    return;
+  }
+
+  /* ---- RESA ---- */
+  if (el.dataset.action === "surrender") {
+    const confirm = window.confirm("Sei sicuro di volerti arrendere? Perderai la partita.");
+    if (confirm) {
+      const winner = state.turn === 0 ? "O" : "X";
+      
+      if (state.gameMode === "online") {
+        await finishGame(state.onlineGameId, winner);
+        
+        if (state.user) {
+          await updateUserStats(state.user.id, "loss", 1000);
+        }
+      }
+      
+      stopTimer(state);
+      alert(`Ti sei arreso. ${winner} vince!`);
+      
+      if (state.onlineChannel) {
+        await unsubscribe(state.onlineChannel);
+      }
+      
       state.ui.screen = "menu";
       renderStatus(state);
       renderBoard(state);
@@ -432,7 +526,8 @@ async function handleMove(micro, row, col) {
         turn: state.turn,
         nextForcedCell: state.nextForcedCell,
         timerX: state.timerX,
-        timerO: state.timerO
+        timerO: state.timerO,
+        timedMode: state.timedMode
       });
     }
 
@@ -547,14 +642,16 @@ function getAllValidMoves(state) {
 // ONLINE
 // ==========================================
 
-async function waitForOpponent(gameId) {
+async function waitForOpponent(gameId, timed) {
   const checkInterval = setInterval(async () => {
     const status = await checkGameStatus(gameId);
     if (status && status.status === "playing") {
       clearInterval(checkInterval);
-      resetGame(state, "online");
+      resetGame(state, "online", null, timed);
       state.onlineWaiting = false;
-      startTimer(state);
+      if (timed) {
+        startTimer(state);
+      }
       renderStatus(state);
       renderBoard(state);
       
@@ -585,8 +682,11 @@ function startOnlineSubscription(gameId) {
       
       if (newState.timerX !== undefined) state.timerX = newState.timerX;
       if (newState.timerO !== undefined) state.timerO = newState.timerO;
+      if (newState.timedMode !== undefined) state.timedMode = newState.timedMode;
       
-      switchTimer(state);
+      if (state.timedMode) {
+        switchTimer(state);
+      }
       
       renderStatus(state);
       renderBoard(state);
