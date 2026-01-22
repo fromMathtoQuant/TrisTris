@@ -839,6 +839,12 @@ if ("serviceWorker" in navigator) {
 /* ===== ANIMAZIONI ===== */
 
 function animateMicroZoomIn(macroCellEl, microIndex) {
+  // Rimuovi eventuali animazioni precedenti
+  const existingClone = document.querySelector('.micro-zoom-clone');
+  const existingFade = document.querySelector('.fade-overlay');
+  if (existingClone) existingClone.remove();
+  if (existingFade) existingFade.remove();
+
   const fade = document.createElement("div");
   fade.className = "fade-overlay";
   document.body.appendChild(fade);
