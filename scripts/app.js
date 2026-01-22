@@ -306,6 +306,7 @@ document.addEventListener("click", async (e) => {
       state.onlinePlayer1Id = result.playerId;
       state.onlineWaiting = true;
       state.timedMode = true;
+      state.ui.screen = "online";
       renderStatus(state);
       renderBoard(state);
       
@@ -326,6 +327,7 @@ document.addEventListener("click", async (e) => {
       state.onlinePlayer1Id = result.playerId;
       state.onlineWaiting = true;
       state.timedMode = false;
+      state.ui.screen = "online";
       renderStatus(state);
       renderBoard(state);
       
@@ -442,7 +444,8 @@ document.addEventListener("click", async (e) => {
         await finishGame(state.onlineGameId, winner);
         
         if (state.user) {
-          await updateUserStats(state.user.id, "loss", 1000);
+          const opponentElo = 1000;
+          await updateUserStats(state.user.id, "loss", opponentElo);
         }
       }
       
@@ -463,11 +466,20 @@ document.addEventListener("click", async (e) => {
   /* ---- CHIUDI FULLSCREEN ---- */
   if (el.dataset.action === "close-micro") {
     const microIndex = state.ui.viewingMicro;
-    animateMicroZoomOut(microIndex, () => {
+    
+    // Se timedMode è true, chiudi immediatamente senza animazione
+    if (state.timedMode) {
       state.ui.viewingMicro = null;
       renderStatus(state);
       renderBoard(state);
-    });
+    } else {
+      // Altrimenti usa l'animazione zoom out
+      animateMicroZoomOut(microIndex, () => {
+        state.ui.viewingMicro = null;
+        renderStatus(state);
+        renderBoard(state);
+      });
+    }
     return;
   }
 
@@ -484,7 +496,15 @@ document.addEventListener("click", async (e) => {
       if (!isMyTurn) return;
     }
   
-    animateMicroZoomIn(cell, idx);
+    // Se timedMode è true, mostra immediatamente senza animazione
+    if (state.timedMode) {
+      state.ui.viewingMicro = idx;
+      renderStatus(state);
+      renderBoard(state);
+    } else {
+      // Altrimenti usa l'animazione zoom
+      animateMicroZoomIn(cell, idx);
+    }
     return;
   }
 
@@ -549,7 +569,8 @@ async function handleMove(micro, row, col) {
             eloResult = "loss";
           }
           
-          await updateUserStats(state.user.id, eloResult, 1000);
+          const opponentElo = 1000; // ELO base per il calcolo
+          await updateUserStats(state.user.id, eloResult, opponentElo);
         }
       }
       
@@ -777,6 +798,10 @@ function animateMicroZoomIn(macroCellEl, microIndex) {
 
   const rect = macroCellEl.getBoundingClientRect();
   
+  // Calcola il centro della macro-cell
+  const macroCenterX = rect.left + rect.width / 2;
+  const macroCenterY = rect.top + rect.height / 2;
+  
   clone.style.left = rect.left + "px";
   clone.style.top = rect.top + "px";
   clone.style.width = rect.width + "px";
@@ -788,18 +813,12 @@ function animateMicroZoomIn(macroCellEl, microIndex) {
     const centerX = window.innerWidth / 2;
     const centerY = window.innerHeight / 2;
     
-    const finalLeft = centerX - targetSize / 2;
-    const finalTop = centerY - targetSize / 2;
-    
-    const rectCenterX = rect.left + rect.width / 2;
-    const rectCenterY = rect.top + rect.height / 2;
-    
     const scale = targetSize / rect.width;
-    const translateX = (finalLeft + targetSize / 2) - rectCenterX;
-    const translateY = (finalTop + targetSize / 2) - rectCenterY;
-
-    clone.style.transformOrigin = "center center";
     
+    // Trasla dal centro della macro-cell al centro dello schermo
+    const translateX = centerX - macroCenterX;
+    const translateY = centerY - macroCenterY;
+
     fade.classList.add("active");
     clone.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
 
@@ -809,7 +828,7 @@ function animateMicroZoomIn(macroCellEl, microIndex) {
       renderBoard(state);
       clone.remove();
       fade.remove();
-    }, 500);
+    }, 400);
   });
 }
 
@@ -841,7 +860,15 @@ function animateMicroZoomOut(targetMicroIndex, onComplete) {
 
     const clone = fullscreen.cloneNode(true);
     clone.className = "micro-zoom-clone";
-    clone.style.transformOrigin = "center center";
+    
+    // Calcola il centro dello schermo (dove si trova fullscreen)
+    const screenCenterX = window.innerWidth / 2;
+    const screenCenterY = window.innerHeight / 2;
+    
+    // Calcola il centro della macro-cell di destinazione
+    const macroCenterX = rectEnd.left + rectEnd.width / 2;
+    const macroCenterY = rectEnd.top + rectEnd.height / 2;
+    
     clone.style.left = rectStart.left + "px";
     clone.style.top = rectStart.top + "px";
     clone.style.width = rectStart.width + "px";
@@ -850,15 +877,11 @@ function animateMicroZoomOut(targetMicroIndex, onComplete) {
     document.body.appendChild(clone);
 
     requestAnimationFrame(() => {
-      const rectStartCenterX = rectStart.left + rectStart.width / 2;
-      const rectStartCenterY = rectStart.top + rectStart.height / 2;
-      
-      const rectEndCenterX = rectEnd.left + rectEnd.width / 2;
-      const rectEndCenterY = rectEnd.top + rectEnd.height / 2;
-      
       const scale = rectEnd.width / rectStart.width;
-      const translateX = rectEndCenterX - rectStartCenterX;
-      const translateY = rectEndCenterY - rectStartCenterY;
+      
+      // Trasla dal centro dello schermo al centro della macro-cell
+      const translateX = macroCenterX - screenCenterX;
+      const translateY = macroCenterY - screenCenterY;
 
       clone.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
       fade.classList.remove("active");
@@ -867,7 +890,7 @@ function animateMicroZoomOut(targetMicroIndex, onComplete) {
         clone.remove();
         fade.remove();
         onComplete();
-      }, 500);
+      }, 400);
     });
   }, 50);
 }
