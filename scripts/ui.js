@@ -59,11 +59,6 @@ export function renderStatus(state) {
     return;
   }
 
-  if (state.gameMode === "ai" && state.turn === 1) {
-    status.textContent = "Turno dell'AI...";
-    return;
-  }
-  
   if (state.gameMode === "online") {
     const isMyTurn = (state.turn === 0 && state.onlinePlayerId === state.onlinePlayer1Id) ||
                      (state.turn === 1 && state.onlinePlayerId !== state.onlinePlayer1Id);
