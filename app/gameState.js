@@ -17,9 +17,12 @@ export function initGameState() {
     onlinePlayer1Id: null,
     onlineWaiting: false,
     onlineChannel: null,
+    // Auth & ELO
+    user: null, // { id, nickname, elo_rating, wins, losses, draws }
+    leaderboard: [], // Array di utenti
     ui: {
       viewingMicro: null,
-      screen: "menu", // "menu" | "difficulty" | "online" | "game"
+      screen: "menu", // "menu" | "difficulty" | "online" | "game" | "nickname" | "leaderboard"
       aiThinking: false
     }
   };
