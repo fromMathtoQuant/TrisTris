@@ -130,6 +130,16 @@ export function renderBoard(state) {
     return;
   }
 
+  if (state.ui.screen === "pvp-mode") {
+    renderPvPModeModal(root);
+    return;
+  }
+
+  if (state.ui.screen === "online-mode") {
+    renderOnlineModeModal(root);
+    return;
+  }
+
   if (state.ui.viewingMicro !== null) {
     renderMicroFullscreen(state, state.ui.viewingMicro, root);
   } else {
@@ -406,6 +416,96 @@ function renderOnlineModal(root, state) {
 }
 
 /* ------------------------------
+   PVP MODE MODAL
+-------------------------------- */
+function renderPvPModeModal(root) {
+  root.innerHTML = "";
+  root.className = "board-placeholder";
+
+  const modal = document.createElement("div");
+  modal.className = "difficulty-modal";
+
+  const content = document.createElement("div");
+  content.className = "difficulty-content";
+
+  const title = document.createElement("h2");
+  title.className = "difficulty-title";
+  title.textContent = "Scegli Modalità";
+
+  const buttonsContainer = document.createElement("div");
+  buttonsContainer.className = "difficulty-buttons";
+
+  const timedBtn = document.createElement("button");
+  timedBtn.className = "difficulty-btn medium";
+  timedBtn.innerHTML = "<strong>Con Tempo ⏱️</strong><br><small>5 minuti per giocatore</small>";
+  timedBtn.dataset.action = "pvp-timed";
+
+  const classicBtn = document.createElement("button");
+  classicBtn.className = "difficulty-btn easy";
+  classicBtn.innerHTML = "<strong>Classic ♾️</strong><br><small>Tempo illimitato</small>";
+  classicBtn.dataset.action = "pvp-classic";
+
+  const cancelBtn = document.createElement("button");
+  cancelBtn.className = "difficulty-btn difficulty-cancel";
+  cancelBtn.textContent = "Annulla";
+  cancelBtn.dataset.action = "cancel-pvp-mode";
+
+  buttonsContainer.appendChild(timedBtn);
+  buttonsContainer.appendChild(classicBtn);
+  buttonsContainer.appendChild(cancelBtn);
+
+  content.appendChild(title);
+  content.appendChild(buttonsContainer);
+  modal.appendChild(content);
+  root.appendChild(modal);
+}
+
+/* ------------------------------
+   ONLINE MODE MODAL
+-------------------------------- */
+function renderOnlineModeModal(root) {
+  root.innerHTML = "";
+  root.className = "board-placeholder";
+
+  const modal = document.createElement("div");
+  modal.className = "difficulty-modal";
+
+  const content = document.createElement("div");
+  content.className = "difficulty-content";
+
+  const title = document.createElement("h2");
+  title.className = "difficulty-title";
+  title.textContent = "Scegli Modalità";
+
+  const buttonsContainer = document.createElement("div");
+  buttonsContainer.className = "difficulty-buttons";
+
+  const timedBtn = document.createElement("button");
+  timedBtn.className = "difficulty-btn medium";
+  timedBtn.innerHTML = "<strong>Con Tempo ⏱️</strong><br><small>5 minuti per giocatore</small>";
+  timedBtn.dataset.action = "online-timed";
+
+  const classicBtn = document.createElement("button");
+  classicBtn.className = "difficulty-btn easy";
+  classicBtn.innerHTML = "<strong>Classic ♾️</strong><br><small>Tempo illimitato</small>";
+  classicBtn.dataset.action = "online-classic";
+
+  const cancelBtn = document.createElement("button");
+  cancelBtn.className = "difficulty-btn difficulty-cancel";
+  cancelBtn.textContent = "Annulla";
+  cancelBtn.dataset.action = "cancel-online-mode";
+
+  buttonsContainer.appendChild(timedBtn);
+  buttonsContainer.appendChild(classicBtn);
+  buttonsContainer.appendChild(cancelBtn);
+
+  content.appendChild(title);
+  content.appendChild(buttonsContainer);
+  modal.appendChild(content);
+  root.appendChild(modal);
+}
+
+/* ------------------------------
    LEADERBOARD MODAL
 -------------------------------- */
 function renderLeaderboardModal(root, state) {
@@ -486,17 +586,14 @@ function renderLeaderboardModal(root, state) {
 /* ------------------------------
    RENDER TIMERS
 -------------------------------- */
-function renderTimers(state, container) {
-  if (state.gameMode !== "pvp" && state.gameMode !== "online") {
-    return;
+function renderTimers(state) {
+  if (!state.timedMode) {
+    return { timerTop: null, timerBottom: null };
   }
-
-  const timersContainer = document.createElement("div");
-  timersContainer.className = "timers-container";
 
   // Timer O (sopra)
   const timerO = document.createElement("div");
-  timerO.className = "timer";
+  timerO.className = "timer-top";
   if (state.turn === 1) {
     timerO.classList.add("active");
   }
@@ -522,7 +619,7 @@ function renderTimers(state, container) {
 
   // Timer X (sotto)
   const timerX = document.createElement("div");
-  timerX.className = "timer";
+  timerX.className = "timer-bottom";
   if (state.turn === 0) {
     timerX.classList.add("active");
   }
@@ -546,10 +643,7 @@ function renderTimers(state, container) {
   timerX.appendChild(symbolX);
   timerX.appendChild(timeX);
 
-  timersContainer.appendChild(timerO);
-  timersContainer.appendChild(timerX);
-
-  container.appendChild(timersContainer);
+  return { timerTop: timerO, timerBottom: timerX };
 }
 
 /* ------------------------------
@@ -567,6 +661,12 @@ function renderMacro(state, root) {
 
   const gameContainer = document.createElement("div");
   gameContainer.className = "game-container";
+
+  // Render timer superiore (O)
+  const timers = renderTimers(state);
+  if (timers.timerTop) {
+    gameContainer.appendChild(timers.timerTop);
+  }
 
   const macro = document.createElement("div");
   macro.className = "macro-grid";
@@ -615,8 +715,19 @@ function renderMacro(state, root) {
 
   gameContainer.appendChild(macro);
 
-  // Render timers
-  renderTimers(state, gameContainer);
+  // Render timer inferiore (X)
+  if (timers.timerBottom) {
+    gameContainer.appendChild(timers.timerBottom);
+  }
+
+  // Bottone Resa
+  if (state.gameMode === "pvp" || state.gameMode === "online") {
+    const surrenderBtn = document.createElement("button");
+    surrenderBtn.className = "surrender-btn";
+    surrenderBtn.textContent = "🏳️ Resa";
+    surrenderBtn.dataset.action = "surrender";
+    gameContainer.appendChild(surrenderBtn);
+  }
 
   if (state.gameMode === "ai" && state.turn === 1 && state.ui.aiThinking) {
     const loadingDiv = document.createElement("div");
