@@ -73,6 +73,88 @@ renderStatus(state);
 renderBoard(state);
 
 // ==========================================
+// TIMER MANAGEMENT
+// ==========================================
+
+function startTimer(state) {
+  if (state.gameMode !== "pvp" && state.gameMode !== "online") {
+    return;
+  }
+
+  // Ferma timer precedente
+  if (state.timerInterval) {
+    clearInterval(state.timerInterval);
+  }
+
+  state.lastMoveTime = Date.now();
+
+  state.timerInterval = setInterval(() => {
+    if (state.ui.screen !== "game" || state.ui.viewingMicro !== null) {
+      return;
+    }
+
+    const now = Date.now();
+    const elapsed = Math.floor((now - state.lastMoveTime) / 1000);
+
+    if (state.turn === 0) {
+      state.timerX = Math.max(0, 300 - elapsed);
+      if (state.timerX === 0) {
+        stopTimer(state);
+        handleTimeoutWin("O");
+      }
+    } else {
+      state.timerO = Math.max(0, 300 - elapsed);
+      if (state.timerO === 0) {
+        stopTimer(state);
+        handleTimeoutWin("X");
+      }
+    }
+
+    renderBoard(state);
+  }, 100);
+}
+
+function stopTimer(state) {
+  if (state.timerInterval) {
+    clearInterval(state.timerInterval);
+    state.timerInterval = null;
+  }
+}
+
+function switchTimer(state) {
+  if (state.gameMode !== "pvp" && state.gameMode !== "online") {
+    return;
+  }
+
+  const now = Date.now();
+  const elapsed = Math.floor((now - state.lastMoveTime) / 1000);
+
+  // Aggiorna il timer del giocatore che ha appena mosso
+  if (state.turn === 1) { // Il turno è appena cambiato, quindi l'ultimo a muovere era X (turn 0)
+    state.timerX = Math.max(0, state.timerX - elapsed);
+  } else { // L'ultimo a muovere era O (turn 1)
+    state.timerO = Math.max(0, state.timerO - elapsed);
+  }
+
+  // Reset del timestamp per il nuovo turno
+  state.lastMoveTime = Date.now();
+}
+
+function handleTimeoutWin(winner) {
+  setTimeout(() => {
+    alert(`Tempo scaduto! ${winner} vince per timeout!`);
+    
+    if (state.onlineChannel) {
+      unsubscribe(state.onlineChannel);
+    }
+    
+    state.ui.screen = "menu";
+    renderStatus(state);
+    renderBoard(state);
+  }, 100);
+}
+
+// ==========================================
 // CLICK HANDLER
 // ==========================================
 
@@ -99,6 +181,7 @@ document.addEventListener("click", async (e) => {
   /* ---- BOTTONE PVP ---- */
   if (el.dataset.action === "start-pvp") {
     resetGame(state, "pvp");
+    startTimer(state);
     renderStatus(state);
     renderBoard(state);
     return;
@@ -224,6 +307,7 @@ document.addEventListener("click", async (e) => {
         state.onlinePlayer1Id = gameState.player1Id;
       }
       
+      startTimer(state);
       renderStatus(state);
       renderBoard(state);
       
@@ -238,10 +322,13 @@ document.addEventListener("click", async (e) => {
   if (el.dataset.action === "cancel-online") {
     if (state.onlineChannel) {
       await unsubscribe(state.onlineChannel);
+      state.onlineChannel = null;
     }
-    state.ui.screen = "online";
+    stopTimer(state);
+    state.ui.screen = "menu";
     state.onlineWaiting = false;
     state.onlineGameCode = null;
+    state.onlineGameId = null;
     renderStatus(state);
     renderBoard(state);
     return;
@@ -271,6 +358,7 @@ document.addEventListener("click", async (e) => {
       if (state.onlineChannel) {
         await unsubscribe(state.onlineChannel);
       }
+      stopTimer(state);
       state.ui.screen = "menu";
       renderStatus(state);
       renderBoard(state);
@@ -331,6 +419,8 @@ async function handleMove(micro, row, col) {
   const result = playMove(state, micro, row, col);
 
   if (result.moved) {
+    switchTimer(state);
+    
     state.ui.viewingMicro = null;
     renderStatus(state);
     renderBoard(state);
@@ -340,11 +430,15 @@ async function handleMove(micro, row, col) {
         macroBoard: state.macroBoard,
         microBoards: state.microBoards,
         turn: state.turn,
-        nextForcedCell: state.nextForcedCell
+        nextForcedCell: state.nextForcedCell,
+        timerX: state.timerX,
+        timerO: state.timerO
       });
     }
 
     if (result.gameEnd) {
+      stopTimer(state);
+      
       if (state.gameMode === "online") {
         await finishGame(state.onlineGameId, result.gameEnd.winner);
         
@@ -460,6 +554,7 @@ async function waitForOpponent(gameId) {
       clearInterval(checkInterval);
       resetGame(state, "online");
       state.onlineWaiting = false;
+      startTimer(state);
       renderStatus(state);
       renderBoard(state);
       
@@ -488,11 +583,17 @@ function startOnlineSubscription(gameId) {
       state.turn = newState.turn;
       state.nextForcedCell = newState.nextForcedCell;
       
+      if (newState.timerX !== undefined) state.timerX = newState.timerX;
+      if (newState.timerO !== undefined) state.timerO = newState.timerO;
+      
+      switchTimer(state);
+      
       renderStatus(state);
       renderBoard(state);
     }
     
     if (update.status === "finished") {
+      stopTimer(state);
       setTimeout(() => {
         showGameEndDialog(update.winner);
       }, 500);
@@ -514,14 +615,14 @@ function showGameEndDialog(winner) {
     if (winner === "X") {
       message = "🎉 HAI VINTO! 🎉";
     } else {
-      message = "😔 L'AI HA VINTO";
+      message = "😢 L'AI HA VINTO";
     }
   } else if (state.gameMode === "online") {
     const mySymbol = state.onlinePlayerId === state.onlinePlayer1Id ? "X" : "O";
     if (winner === mySymbol) {
       message = "🎉 HAI VINTO! 🎉";
     } else {
-      message = "😔 HAI PERSO";
+      message = "😢 HAI PERSO";
     }
   } else {
     message = `🎉 VITTORIA ${winner}! 🎉`;
@@ -532,6 +633,8 @@ function showGameEndDialog(winner) {
   if (state.onlineChannel) {
     unsubscribe(state.onlineChannel);
   }
+  
+  stopTimer(state);
   
   state.ui.screen = "menu";
   renderStatus(state);
