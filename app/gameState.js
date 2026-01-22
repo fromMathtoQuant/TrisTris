@@ -51,6 +51,11 @@ export function resetGame(state, mode = "pvp", difficulty = null, timed = false)
     state.timerX = 300;
     state.timerO = 300;
     state.lastMoveTime = Date.now();
+  } else {
+    // Assicurati che non ci siano timer attivi in modalità classic
+    state.timerX = 300;
+    state.timerO = 300;
+    state.lastMoveTime = null;
   }
 }
 
