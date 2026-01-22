@@ -83,7 +83,7 @@ export function renderStatus(state) {
         status.textContent = `Il tuo turno (${mySymbol}) — scegli una casella`;
       } else {
         const descrizione = getPositionDescription(state.nextForcedCell);
-        status.textContent = `Tocca a ${mySymbol} — devi giocare nella casella ${descrizione}`;
+        status.textContent = `Tocca a ${mySymbol} — devi giocare ${descrizione}`;
       }
     } else {
       status.textContent = `In attesa dell'avversario...`;
@@ -95,7 +95,7 @@ export function renderStatus(state) {
     status.textContent = `Turno: ${player} — scegli una casella`;
   } else {
     const descrizione = getPositionDescription(state.nextForcedCell);
-    status.textContent = `Tocca a ${player} — devi giocare nella casella ${descrizione}`;
+    status.textContent = `Tocca a ${player} — devi giocare ${descrizione}`;
   }
 }
 
@@ -656,11 +656,14 @@ function renderMacro(state, root) {
   const gameContainer = document.createElement("div");
   gameContainer.className = "game-container";
 
-  const backBtn = document.createElement("button");
-  backBtn.textContent = "← Menu";
-  backBtn.className = "back-menu-btn";
-  backBtn.dataset.action = "back-to-menu";
-  gameContainer.appendChild(backBtn);
+  // Bottone back to menu solo se NON online
+  if (state.gameMode !== "online") {
+    const backBtn = document.createElement("button");
+    backBtn.textContent = "← Menu";
+    backBtn.className = "back-menu-btn";
+    backBtn.dataset.action = "back-to-menu";
+    gameContainer.appendChild(backBtn);
+  }
 
   // Render timer superiore (O)
   const timers = renderTimers(state);
