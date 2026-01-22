@@ -418,8 +418,8 @@ document.addEventListener("click", async (e) => {
     
     const result = await joinGame(code);
     if (result.success) {
-      // Verifica che non stia giocando contro se stesso
-      if (result.playerId === result.player1Id) {
+      // Verifica che non stia giocando contro se stesso tramite nickname
+      if (state.user && result.player1Nickname === state.user.nickname) {
         alert("Non puoi giocare contro te stesso!");
         return;
       }
