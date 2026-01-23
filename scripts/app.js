@@ -849,11 +849,11 @@ if ("serviceWorker" in navigator) {
 /* ===== ANIMAZIONI ===== */
 
 function animateMicroZoomIn(macroCellEl, microIndex) {
-  // Rimuovi eventuali animazioni precedenti
-  const existingClone = document.querySelector('.micro-zoom-clone');
-  const existingFade = document.querySelector('.fade-overlay');
-  if (existingClone) existingClone.remove();
-  if (existingFade) existingFade.remove();
+  // Pulisci completamente eventuali animazioni in corso
+  const existingClones = document.querySelectorAll('.micro-zoom-clone');
+  const existingFades = document.querySelectorAll('.fade-overlay');
+  existingClones.forEach(el => el.remove());
+  existingFades.forEach(el => el.remove());
 
   const fade = document.createElement("div");
   fade.className = "fade-overlay";
@@ -880,48 +880,50 @@ function animateMicroZoomIn(macroCellEl, microIndex) {
 
   const rect = macroCellEl.getBoundingClientRect();
   
-  // Posiziona il clone esattamente sulla macro-cell
+  // Posiziona il clone esattamente sulla macro-cell con transform esplicito
   clone.style.left = rect.left + "px";
   clone.style.top = rect.top + "px";
   clone.style.width = rect.width + "px";
   clone.style.height = rect.height + "px";
-  clone.style.transform = "translate(0, 0) scale(1)";
+  clone.style.transition = "none";
+  clone.style.transform = "translate(0px, 0px) scale(1)";
 
-  // Forza un reflow per assicurare che il browser applichi lo stato iniziale
-  clone.offsetHeight;
+  // Forza un reflow completo
+  void clone.offsetHeight;
 
+  // Aspetta il prossimo frame prima di applicare la transizione
   requestAnimationFrame(() => {
-    // Calcola le dimensioni finali (max 90% dello schermo)
-    const maxWidth = window.innerWidth * 0.9;
-    const maxHeight = window.innerHeight * 0.85;
-    const targetSize = Math.min(maxWidth, maxHeight);
+    clone.style.transition = "transform 0.3s ease-out";
     
-    // Calcola il centro dello schermo
-    const screenCenterX = window.innerWidth / 2;
-    const screenCenterY = window.innerHeight / 2;
-    
-    // Calcola il centro attuale della macro-cell
-    const currentCenterX = rect.left + rect.width / 2;
-    const currentCenterY = rect.top + rect.height / 2;
-    
-    // Calcola quanto scalare
-    const scale = targetSize / rect.width;
-    
-    // Calcola quanto traslare per centrare
-    const translateX = screenCenterX - currentCenterX;
-    const translateY = screenCenterY - currentCenterY;
+    requestAnimationFrame(() => {
+      // Calcola le dimensioni finali
+      const maxWidth = window.innerWidth * 0.9;
+      const maxHeight = window.innerHeight * 0.85;
+      const targetSize = Math.min(maxWidth, maxHeight);
+      
+      // Calcola i centri
+      const screenCenterX = window.innerWidth / 2;
+      const screenCenterY = window.innerHeight / 2;
+      const currentCenterX = rect.left + rect.width / 2;
+      const currentCenterY = rect.top + rect.height / 2;
+      
+      // Calcola trasformazione
+      const scale = targetSize / rect.width;
+      const translateX = screenCenterX - currentCenterX;
+      const translateY = screenCenterY - currentCenterY;
 
-    // Applica la trasformazione
-    fade.classList.add("active");
-    clone.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+      // Applica trasformazione
+      fade.classList.add("active");
+      clone.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
 
-    setTimeout(() => {
-      state.ui.viewingMicro = microIndex;
-      renderStatus(state);
-      renderBoard(state);
-      clone.remove();
-      fade.remove();
-    }, 300);
+      setTimeout(() => {
+        state.ui.viewingMicro = microIndex;
+        renderStatus(state);
+        renderBoard(state);
+        clone.remove();
+        fade.remove();
+      }, 300);
+    });
   });
 }
 
@@ -931,6 +933,12 @@ function animateMicroZoomOut(targetMicroIndex, onComplete) {
     onComplete();
     return;
   }
+
+  // Pulisci eventuali animazioni residue
+  const existingClones = document.querySelectorAll('.micro-zoom-clone');
+  const existingFades = document.querySelectorAll('.fade-overlay');
+  existingClones.forEach(el => el.remove());
+  existingFades.forEach(el => el.remove());
 
   const rectStart = fullscreen.getBoundingClientRect();
   
@@ -954,41 +962,42 @@ function animateMicroZoomOut(targetMicroIndex, onComplete) {
     const clone = fullscreen.cloneNode(true);
     clone.className = "micro-zoom-clone";
     
-    // Posiziona il clone al centro dello schermo
+    // Posiziona al centro con transform esplicito
     clone.style.left = rectStart.left + "px";
     clone.style.top = rectStart.top + "px";
     clone.style.width = rectStart.width + "px";
     clone.style.height = rectStart.height + "px";
-    clone.style.transform = "translate(0, 0) scale(1)";
+    clone.style.transition = "none";
+    clone.style.transform = "translate(0px, 0px) scale(1)";
     
     document.body.appendChild(clone);
 
-    // Forza un reflow
-    clone.offsetHeight;
+    // Forza reflow
+    void clone.offsetHeight;
 
     requestAnimationFrame(() => {
-      // Calcola i centri
-      const currentCenterX = rectStart.left + rectStart.width / 2;
-      const currentCenterY = rectStart.top + rectStart.height / 2;
+      clone.style.transition = "transform 0.3s ease-out";
       
-      const targetCenterX = rectEnd.left + rectEnd.width / 2;
-      const targetCenterY = rectEnd.top + rectEnd.height / 2;
-      
-      // Calcola la scala
-      const scale = rectEnd.width / rectStart.width;
-      
-      // Calcola la traslazione
-      const translateX = targetCenterX - currentCenterX;
-      const translateY = targetCenterY - currentCenterY;
+      requestAnimationFrame(() => {
+        // Calcola trasformazione
+        const currentCenterX = rectStart.left + rectStart.width / 2;
+        const currentCenterY = rectStart.top + rectStart.height / 2;
+        const targetCenterX = rectEnd.left + rectEnd.width / 2;
+        const targetCenterY = rectEnd.top + rectEnd.height / 2;
+        
+        const scale = rectEnd.width / rectStart.width;
+        const translateX = targetCenterX - currentCenterX;
+        const translateY = targetCenterY - currentCenterY;
 
-      clone.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
-      fade.classList.remove("active");
+        clone.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+        fade.classList.remove("active");
 
-      setTimeout(() => {
-        clone.remove();
-        fade.remove();
-        onComplete();
-      }, 300);
+        setTimeout(() => {
+          clone.remove();
+          fade.remove();
+          onComplete();
+        }, 300);
+      });
     });
   }, 50);
 }
