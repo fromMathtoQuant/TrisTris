@@ -364,6 +364,7 @@ document.addEventListener("click", async (e) => {
       state.onlineGameCode = result.code;
       state.onlinePlayerId = result.playerId;
       state.onlinePlayer1Id = result.playerId;
+      state.onlinePlayer1Nickname = state.user?.nickname || "Player1";
       state.onlineWaiting = true;
       state.timedMode = true;
       state.ui.screen = "online";
@@ -385,6 +386,7 @@ document.addEventListener("click", async (e) => {
       state.onlineGameCode = result.code;
       state.onlinePlayerId = result.playerId;
       state.onlinePlayer1Id = result.playerId;
+      state.onlinePlayer1Nickname = state.user?.nickname || "Player1";
       state.onlineWaiting = true;
       state.timedMode = false;
       state.ui.screen = "online";
@@ -416,14 +418,22 @@ document.addEventListener("click", async (e) => {
       return;
     }
     
+    // Prima carica lo stato del gioco per verificare il creatore
+    const gameStateCheck = await loadGameState(code);
+    
+    if (!gameStateCheck || !gameStateCheck.player1_id) {
+      alert("Partita non trovata");
+      return;
+    }
+    
+    // Verifica che non stia giocando contro se stesso
+    if (state.user && gameStateCheck.player1_id === state.user.id) {
+      alert("Non puoi giocare contro te stesso!");
+      return;
+    }
+    
     const result = await joinGame(code);
     if (result.success) {
-      // Verifica che non stia giocando contro se stesso tramite nickname
-      if (state.user && result.player1Nickname === state.user.nickname) {
-        alert("Non puoi giocare contro te stesso!");
-        return;
-      }
-      
       // Carica lo stato del gioco per ottenere la modalità timer
       const gameState = await loadGameState(result.gameId);
       const timed = gameState?.state?.timedMode || false;
