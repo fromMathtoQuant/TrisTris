@@ -21,6 +21,7 @@ export function initGameState() {
     onlineGameCode: null,
     onlinePlayerId: null,
     onlinePlayer1Id: null,
+    onlinePlayer1Nickname: null,
     onlineWaiting: false,
     onlineChannel: null,
     // Auth & ELO
