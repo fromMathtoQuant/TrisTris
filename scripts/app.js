@@ -86,7 +86,8 @@ function startTimer(state) {
     clearInterval(state.timerInterval);
   }
 
-  state.lastMoveTime = Date.now();
+  // Inizializza timestamp di tick (non di mossa)
+  state.lastTickTime = Date.now();
 
   state.timerInterval = setInterval(() => {
     if (state.ui.screen !== "game" || state.ui.viewingMicro !== null) {
@@ -94,12 +95,15 @@ function startTimer(state) {
     }
 
     const now = Date.now();
-    const elapsed = Math.floor((now - state.lastMoveTime) / 1000);
-
+    const elapsedSeconds = Math.floor((now - state.lastTickTime) / 1000);
+    
+    if (elapsedSeconds <= 0) return; // ancora non è passato un secondo intero
+    
     let needsUpdate = false;
 
     if (state.turn === 0) {
-      const newTimerX = Math.max(0, 300 - elapsed);
+      // Turno di X → decrementa timerX di elapsedSeconds
+      const newTimerX = Math.max(0, state.timerX - elapsedSeconds);
       if (newTimerX !== state.timerX) {
         state.timerX = newTimerX;
         needsUpdate = true;
@@ -111,7 +115,8 @@ function startTimer(state) {
         }
       }
     } else {
-      const newTimerO = Math.max(0, 300 - elapsed);
+      // Turno di O → decrementa timerO di elapsedSeconds
+      const newTimerO = Math.max(0, state.timerO - elapsedSeconds);
       if (newTimerO !== state.timerO) {
         state.timerO = newTimerO;
         needsUpdate = true;
@@ -123,6 +128,8 @@ function startTimer(state) {
         }
       }
     }
+    // Avanza il riferimento del tick solo della parte consumata
+    state.lastTickTime += elapsedSeconds * 1000;
 
     // Aggiorna solo i timer, non tutta la board
     if (needsUpdate) {
@@ -187,17 +194,33 @@ function switchTimer(state) {
   }
 
   const now = Date.now();
-  const elapsed = Math.floor((now - state.lastMoveTime) / 1000);
+  const elapsedSeconds = Math.floor((now - (state.lastTickTime || now)) / 1000);
 
-  // Aggiorna il timer del giocatore che ha appena mosso
-  if (state.turn === 1) { // Il turno è appena cambiato, quindi l'ultimo a muovere era X (turn 0)
-    state.timerX = Math.max(0, state.timerX - elapsed);
-  } else { // L'ultimo a muovere era O (turn 1)
-    state.timerO = Math.max(0, state.timerO - elapsed);
-  }
+  if (elapsedSeconds > 0) {
+      if (state.turn === 1) {
+        // Se adesso tocca a O, ha appena mosso X → consuma su X
+        state.timerX = Math.max(0, state.timerX - elapsedSeconds);
+        if (state.timerX === 0) {
+          stopTimer(state);
+          handleTimeoutWin("O");
+          return;
+        }
+      } else {
+        // Se adesso tocca a X, ha appena mosso O → consuma su O
+        state.timerO = Math.max(0, state.timerO - elapsedSeconds);
+        if (state.timerO === 0) {
+          stopTimer(state);
+          handleTimeoutWin("X");
+          return;
+        }
+      }
+    }
 
   // Reset del timestamp per il nuovo turno
   state.lastMoveTime = Date.now();
+  
+  // Aggiorna la UI dei timer subito
+  updateTimerDisplay(state);
 }
 
 function handleTimeoutWin(winner) {
